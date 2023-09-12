@@ -4,20 +4,11 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 import validators   
 from src.models.users import Users
-from .extensions import db
+from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
-from .schema.users import users_model, user_input_model
+from ..schema.users import users_model, user_input_model
 
 auth = Blueprint("auth", __name__, url_prefix="/api/v1/auth/")
-
-# ns = Namespace("users")
-
-# @ns.route("/")
-# class handle_users(Resource):
-#     @ns.marshal_list_with(users_model)
-#     def get(self):
-#         return Users.query.all()
-
 
 @auth.post('register')
 def register():
