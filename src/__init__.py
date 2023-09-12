@@ -1,7 +1,7 @@
 from flask import Flask
 import os
 from src.extensions import api, db
-from src.auth import ns
+from src.auth import auth
 from flask_jwt_extended import JWTManager
 
 def create_app(test_config=None):
@@ -27,10 +27,10 @@ def create_app(test_config=None):
     # with app.app_context():
     #     db.create_all()
     
-    api.add_namespace(ns)
+    # api.add_namespace(ns)
 
     JWTManager(app)
 
-    # app.register_blueprint(auth)
+    app.register_blueprint(auth)
         
     return app
