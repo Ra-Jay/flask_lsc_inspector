@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import validators  
 from src.models.files import Files
 from ..extensions import db
+from flask import session
 from time import time
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -16,6 +17,9 @@ UPLOADS_FOLDER = os.path.join('src', 'static', 'uploads')
 @files.route('/upload', methods=['POST', 'GET'])
 @jwt_required()
 def upload_file():
+  """
+  Handles the uploading of a file, saves it locally, stores the uploaded file path in the session, and returns the file path.
+  """
   if request.method == 'POST':
     if 'file' not in request.files:
       return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
@@ -23,13 +27,6 @@ def upload_file():
     uploaded_file = request.files['file']
     
     uploaded_filename = secure_filename(uploaded_file.filename)
-    
-    existing_file = Files.query.filter_by(name=uploaded_filename).first()
-    
-    # TODO: Implement URL generation from AWS S3 bucket to be used and searched in the database. [RESEARCHING]
-    
-    if existing_file:
-      return jsonify({'error': 'File already exists.'}), HTTP_409_CONFLICT
     
     print("===============================")
     print("Uploading " + uploaded_filename)
@@ -43,11 +40,11 @@ def upload_file():
     path = os.path.join(UPLOADS_FOLDER, uploaded_filename)
       
     uploaded_file.save(path)
+    session['file_path'] = path
     
     elapsed_time = time() - start_time
     print("===============================")
     print(f"New input file saved locally at {path} folder in {elapsed_time:.2f} seconds")
     
-    # This returns the path of the uploaded file to display in the frontend.
     return jsonify({'file_path': path}), HTTP_201_CREATED
     
