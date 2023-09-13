@@ -3,6 +3,7 @@ import os
 from src.extensions import api, db
 from src.controllers.user import auth
 from src.controllers.weights import weights
+from src.controllers.files import files
 from flask_jwt_extended import JWTManager
 
 def create_app(test_config=None):
@@ -33,5 +34,6 @@ def create_app(test_config=None):
     JWTManager(app)
     app.register_blueprint(auth)
     app.register_blueprint(weights)
+    app.register_blueprint(files)
         
     return app
