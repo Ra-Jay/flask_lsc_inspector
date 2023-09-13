@@ -2,12 +2,18 @@ import os
 from ultralytics import YOLO
 from src.controllers.weights import get_weight
 
+# For demo purposes only
+DEMO_WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights', 'yolov8s', 'lsc_v1.pt')
+
+# When an image has been uploaded, it will preview in the frontend and will be saved in the uploads folder
+UPLOADS_FOLDER = os.path.join('src', 'static', 'uploads')
+
 def demo_analyze_image(filename):
-    model = YOLO('src\\pre-trained_weights\\yolov8s\\lsc_v1.pt')
+    model = YOLO(DEMO_WEIGHTS_FOLDER)
     
-    # TODO: Get the file path of the image from the filename parameter instead of predefining the address of the file.
-    # (May need how the NextJS app will send the file to the backend)
-    file_path = os.path.join('src\\uploads\\', filename)
+    # TODO: Get the file path of the image from the filename parameter instead of predefining the address of the file. [DISCONTINUED]
+    # (May need how the NextJS app will send the file to the backend) [DISCONTINUED]
+    file_path = os.path.join(UPLOADS_FOLDER, filename)
     
     result = model.predict(
         source=file_path, 
@@ -26,11 +32,11 @@ def custom_analyze_image(filename):
     custom_weights = get_weight(id)
     
     # TODO: Download custom weights from the url attribute of the custom_weights object to use as parameter for the YOLO object.
-    model = YOLO('src\\pre-trained_weights\\yolov8s\\lsc_v1.pt')
+    model = YOLO(DEMO_WEIGHTS_FOLDER)
     
-    # TODO: Get the file path of the image from the filename parameter instead of predefining the address of the file.
-    # (May need how the NextJS app will send the file to the backend)
-    file_path = os.path.join('src\\uploads\\', filename)
+    # TODO: Get the file path of the image from the filename parameter instead of predefining the address of the file. [DISCONTINUED]
+    # (May need how the NextJS app will send the file to the backend) [DISCONTINUED]
+    file_path = os.path.join(UPLOADS_FOLDER, filename)
     
     result = model.predict(
         source=file_path, 
