@@ -48,3 +48,13 @@ def upload_file():
     
     return jsonify({'file_path': path}), HTTP_201_CREATED
     
+@files.route('/analyze', methods=['POST', 'GET'])
+@jwt_required()
+def analyze_file():
+  current_user = get_jwt_identity()
+  
+  if request.method == 'POST':
+    uploaded_filepath = session.get('file_path')
+    
+    if uploaded_filepath is None:
+      return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
