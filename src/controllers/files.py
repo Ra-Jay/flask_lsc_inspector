@@ -6,7 +6,7 @@ from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_B
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import validators
-from src.helpers.utility import custom_analyze_image  
+from src.helpers.utility import custom_analyze_image, demo_analyze_image, get_file_dimensions, get_file_size
 from src.models.files import Files
 from ..extensions import db
 from flask import session
@@ -96,6 +96,8 @@ def analyze_file():
     error_rate = round(1 - accuracy, 2)
     
     # TODO: Get the dimensions and size of the uploaded file to be reused. Can also get the dimensions and size of the resulting image instead.
+    dimensions = get_file_dimensions(resulting_image)
+    size = get_file_size(resulting_image)
     
     # TODO: Generate URL to upload the resulting image to the cloud.
     
@@ -106,8 +108,8 @@ def analyze_file():
         classification=classification, 
         accuracy=accuracy, 
         error_rate=error_rate, 
-        dimensions="TO BE IMPLEMENTED", 
-        size="TO BE IMPLEMENTED"
+        dimensions=dimensions, 
+        size=size
       )
     db.session.add(file)
     db.session.commit()
