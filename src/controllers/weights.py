@@ -41,6 +41,10 @@ def upload_weights():
             
         uploaded_weights.save(path)
         session['uploaded_file'] = path
+        
+        elapsed_time = time() - start_time 
+        print("===============================")
+        print(f"New weights saved locally at {path} folder in {elapsed_time:.2f} seconds")
             
         name = request.get_json().get('name', '')
         url = request.get_json().get('url', '')
