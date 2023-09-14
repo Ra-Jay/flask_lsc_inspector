@@ -54,6 +54,10 @@ def upload_file():
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
 def analyze_file():
+  """
+  Handles the analysis of the uploaded file using the uploaded custom weights, stores the analysis
+  results in a database, and returns the analysis details along with the resulting image.
+  """
   current_user = get_jwt_identity()
   
   if request.method == 'POST':
