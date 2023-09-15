@@ -4,6 +4,12 @@ import numpy as np
 from ultralytics import YOLO
 from PIL import Image
 
+from supabase import create_client, Client
+
+url: str = os.environ.get("https://tgbqbnhnyjakucemhefo.supabase.co/")
+key: str = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnYnFibmhueWpha3VjZW1oZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ3NTg1NjQsImV4cCI6MjAxMDMzNDU2NH0.wxVjFK5HBbOwTpe7fbd7Sl6pqAzZnkPloTqxkFPb9RI ")
+supabase: Client = create_client(url, key, options={'timeout': 10})
+
 # For demo purposes only
 DEMO_WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights', 'yolov8s', 'lsc_v1.pt')
 
