@@ -6,8 +6,10 @@ from PIL import Image
 
 from supabase import create_client, Client
 
-url: str = os.environ.get("https://tgbqbnhnyjakucemhefo.supabase.co/")
-key: str = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnYnFibmhueWpha3VjZW1oZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ3NTg1NjQsImV4cCI6MjAxMDMzNDU2NH0.wxVjFK5HBbOwTpe7fbd7Sl6pqAzZnkPloTqxkFPb9RI ")
+
+url = os.environ.get('SUPABASE_URL')
+key = os.environ.get('SUPABASE_KEY')
+
 supabase: Client = create_client(url, key, options={'timeout': 10})
 
 # For demo purposes only

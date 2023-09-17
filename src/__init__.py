@@ -16,7 +16,9 @@ def create_app(test_config=None):
             SECRET_KEY=os.environ.get('SECRET_KEY'),
             SQLALCHEMY_DATABASE_URI=os.environ.get('SQLALCHEMY_DB_URI'),
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
-            JWT_SECRET_KEY=os.environ.get(  'JWT_SECRET_KEY')
+            JWT_SECRET_KEY=os.environ.get(  'JWT_SECRET_KEY'),
+            SUPABASE_URL=os.environ.get('SUPABASE_URL'),
+            SUPABASE_KEY=os.environ.get('SUPABASE_KEY')
         )
 
     else: 
