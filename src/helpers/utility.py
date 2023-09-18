@@ -6,11 +6,16 @@ from PIL import Image
 
 from supabase import create_client, Client
 
-
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 
 supabase: Client = create_client(url, key, options={'timeout': 10})
+
+def supabase_upload(filepath):
+    with open(filepath, 'rb+') as f:
+        response = supabase.storage.from_('lsc_bucket').upload(filepath, f)
+        
+    return response
 
 # For demo purposes only
 DEMO_WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights', 'yolov8s', 'lsc_v1.pt')
