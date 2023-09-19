@@ -29,10 +29,8 @@ def create_app(test_config=None):
     api.init_app(app)
     db.init_app(app)
     
-    # with app.app_context():
-    #     db.create_all()
-    
-    # api.add_namespace(ns)
+    with app.app_context():
+        db.create_all()
 
     JWTManager(app)
     app.register_blueprint(auth)
