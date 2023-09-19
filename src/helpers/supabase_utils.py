@@ -5,7 +5,7 @@ url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 bucket = os.environ.get('SUPABASE_BUCKET')
 
-supabase: Client = create_client(url, key, options={'timeout': 10})
+supabase: Client = create_client(url, key)
 
 def upload_file_to_bucket(filepath):
     with open(filepath, 'rb+') as f:
