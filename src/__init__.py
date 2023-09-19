@@ -19,7 +19,9 @@ def create_app(test_config=None):
             JWT_SECRET_KEY=os.environ.get(  'JWT_SECRET_KEY'),
             SUPABASE_URL=os.environ.get('SUPABASE_URL'),
             SUPABASE_KEY=os.environ.get('SUPABASE_KEY'),
-            SUPABASE_BUCKET=os.environ.get('SUPABASE_BUCKET'),
+            SUPABASE_BUCKET_FILES=os.environ.get('SUPABASE_BUCKET_FILES'),
+            SUPABASE_BUCKET_WEIGHTS=os.environ.get('SUPABASE_BUCKET_WEIGHTS'),
+            SUPABASE_BUCKET_PROFILE_IMAGES=os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
         )
 
     else: 

@@ -3,7 +3,9 @@ from supabase import create_client, Client
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
-bucket = os.environ.get('SUPABASE_BUCKET')
+files = os.environ.get('SUPABASE_BUCKET_FILES')
+weights = os.environ.get('SUPABASE_BUCKET_WEIGHTS')
+profile_images = os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES')
 
 supabase: Client = create_client(url, key)
 
