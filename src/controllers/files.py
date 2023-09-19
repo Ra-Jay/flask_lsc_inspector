@@ -2,7 +2,7 @@ import os
 
 import torch
 from flask_restx import Resource, Namespace 
-from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import validators
@@ -73,11 +73,9 @@ def analyze_file():
     existing_file = Files.query.filter_by(name=uploaded_filename, user_id=current_user).first()
     
     if existing_file:
-      # TODO: Download/Preview the existing file through its URL and return it.
-      # (Assuming the file can be previewed using its URL)
       return jsonify({
         'error': 'File already exists.',
-        'file_path': existing_file.url
+        'url': existing_file.url
         }), HTTP_409_CONFLICT
     
     # Assuming the weights controller has also stored the custom weights in the session.
@@ -105,29 +103,43 @@ def analyze_file():
     dimensions = get_image_dimensions(resulting_image)
     size = get_image_size(resulting_image)
     
-    # TODO: Generate URL to upload the resulting image to the cloud.
+    start_time = time()
+    response = upload_file_to_bucket(resulting_image)
+    print("===============================")
+    elapsed_time = time() - start_time
+    if response is HTTP_200_OK:
+      print("Uploaded the " + uploaded_filename + " to the supabase bucket in {elapsed_time:.2f} seconds")
     
-    file = Files(
-        name=uploaded_filename, 
-        url="TO BE IMPLEMENTED", 
-        user_id=current_user, 
-        classification=classification, 
-        accuracy=accuracy, 
-        error_rate=error_rate, 
-        dimensions=dimensions, 
-        size=size
-      )
-    db.session.add(file)
-    db.session.commit()
-    
-    return jsonify({
-      'id': file.id,
-      'name': file.name,
-      'dimensions': file.dimensions,
-      'size': file.size,
-      'url': file.url,
-      'classification': classification,
-      'accuracy': accuracy,
-      'error_rate': error_rate,
-      'resulting_image': resulting_image
-      }), HTTP_201_CREATED
+      file = Files(
+          name=uploaded_filename, 
+          url="TO BE IMPLEMENTED", 
+          user_id=current_user, 
+          classification=classification, 
+          accuracy=accuracy, 
+          error_rate=error_rate, 
+          dimensions=dimensions, 
+          size=size
+        )
+      db.session.add(file)
+      db.session.commit()
+      
+      return jsonify({
+        'id': file.id,
+        'name': file.name,
+        'dimensions': file.dimensions,
+        'size': file.size,
+        'url': file.url,
+        'classification': classification,
+        'accuracy': accuracy,
+        'error_rate': error_rate,
+        'resulting_image': resulting_image
+        }), HTTP_201_CREATED
+    elif response is HTTP_400_BAD_REQUEST:
+      print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
+      return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
+    elif response is HTTP_409_CONFLICT:
+      print("The file " + uploaded_filename + " already exists in the supabase bucket")
+      return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
+    else:
+      print("Internal server error either in supabase or files controller.")
+      return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
