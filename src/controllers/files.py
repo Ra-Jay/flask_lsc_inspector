@@ -74,17 +74,18 @@ def upload_file():
 def analyze_file():
   """
   Handles the analysis of the uploaded file using the uploaded custom weights, stores the analysis
-  results in a database, and returns the analysis details along with the resulting image.
+  results in a database, and returns the analysis details along with the resulting image after 
+  being uploaded in the supabase files bucket.
   """
   current_user = get_jwt_identity()
   
   if request.method == 'POST':
-    uploaded_filepath = session.get('uploaded_filepath')
+    uploaded_file_url = session.get('uploaded_file_url')
     
-    if uploaded_filepath is None:
+    if uploaded_file_url is None:
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
-    uploaded_filename = os.path.basename(uploaded_filepath)
+    uploaded_filename = os.path.basename(uploaded_file_url)
     
     existing_file = Files.query.filter_by(name=uploaded_filename, user_id=current_user).first()
     
@@ -94,15 +95,17 @@ def analyze_file():
         'url': existing_file.url
         }), HTTP_409_CONFLICT
     
-    # Assuming the weights controller has also stored the custom weights in the session.
-    session_custom_weights = session.get('uploaded_custom_weights')
+    # Assuming the weights controller has also stored the custom weights and retrieved its url from supabase in the session.
+    session_custom_weights_url = session.get('uploaded_custom_weights_url')
+    
+    weights_filename = os.path.basename(session_custom_weights_url)
     
     print("===============================")
-    print("Analyzing " + uploaded_filename + " using the uploaded " + session_custom_weights['name'] + " weights")
+    print("Analyzing " + uploaded_filename + " using the uploaded " + weights_filename + " weights")
     start_time = time()
     
     # Predict the uploaded file using the custom weights of the user that was uploaded in the database and stored in session.
-    result = custom_analyze_image(uploaded_filename, session_custom_weights)
+    result = custom_analyze_image(uploaded_filename, session_custom_weights_url)
     
     elapsed_time = time() - start_time
     print("\n===============================")
@@ -115,17 +118,17 @@ def analyze_file():
     accuracy = round(torch.tensor(result[0].boxes.conf).item(),2 )
     error_rate = round(1 - accuracy, 2)
     
-    dimensions = get_image_dimensions(resulting_image)
-    size = get_image_size(resulting_image)
-    
     start_time = time()
-    response = upload_file_to_bucket(resulting_image)
+    # Assuming the resulting image file was previously uploaded in supabase files bucket without the results yet, 
+    # delete that file first before uploading the new one with the results and boxes.
+    delete_file_by_name('files', uploaded_filename)
+    response = upload_file_to_bucket('files', resulting_image)
     
     print("===============================")
     elapsed_time = time() - start_time
     
     if response is HTTP_200_OK:
-      print("Uploaded the " + uploaded_filename + " to the supabase bucket in {elapsed_time:.2f} seconds")
+      print(f"Successfully uploaded then {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
     
       url = get_file_url_by_name(uploaded_filename)
       
@@ -139,8 +142,8 @@ def analyze_file():
           classification=classification, 
           accuracy=accuracy, 
           error_rate=error_rate, 
-          dimensions=dimensions, 
-          size=size
+          dimensions=get_image_dimensions(resulting_image), 
+          size=get_image_size(resulting_image)
         )
       db.session.add(file)
       db.session.commit()
