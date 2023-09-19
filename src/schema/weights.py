@@ -7,3 +7,8 @@ weights_model = api.model("Weights", {
     'created_at': fields.DateTime,
     'updated_at': fields.DateTime
 })
+
+weights_input_model = api.model("WeightsInput", {
+    "name": fields.String,
+    'url': fields.String
+})
