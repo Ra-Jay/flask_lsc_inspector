@@ -17,6 +17,14 @@ def supabase_upload(filepath):
         
     return response
 
+def supabase_download(filename):
+    data = supabase.storage.from_('lsc_bucket').download(filename)
+    
+    return data
+
+def supabase_get_url(filename):
+    return supabase.storage.from_('lsc_bucket').get_public_url(filename)
+
 # For demo purposes only
 DEMO_WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights', 'yolov8s', 'lsc_v1.pt')
 
