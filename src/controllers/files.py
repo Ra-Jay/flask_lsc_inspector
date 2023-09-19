@@ -99,7 +99,6 @@ def analyze_file():
     accuracy = round(torch.tensor(result[0].boxes.conf).item(),2 )
     error_rate = round(1 - accuracy, 2)
     
-    # TODO: Get the dimensions and size of the uploaded file to be reused. Can also get the dimensions and size of the resulting image instead.
     dimensions = get_image_dimensions(resulting_image)
     size = get_image_size(resulting_image)
     
@@ -110,9 +109,14 @@ def analyze_file():
     if response is HTTP_200_OK:
       print("Uploaded the " + uploaded_filename + " to the supabase bucket in {elapsed_time:.2f} seconds")
     
+      url = get_file_url_by_name(uploaded_filename)
+      
+      if url is None:
+        return jsonify({'error': 'Failed to get the url of the uploaded file.'}), HTTP_400_BAD_REQUEST
+      
       file = Files(
           name=uploaded_filename, 
-          url="TO BE IMPLEMENTED", 
+          url=url, 
           user_id=current_user, 
           classification=classification, 
           accuracy=accuracy, 
