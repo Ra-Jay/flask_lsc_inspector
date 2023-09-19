@@ -17,13 +17,13 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
-UPLOADS_FOLDER = os.path.join('src', 'static', 'uploads')
-
 @files.route('/upload', methods=['POST', 'GET'])
 @jwt_required()
 def upload_file():
   """
-  Handles the uploading of a file, saves it locally, stores the uploaded file path in the session, and returns the file path.
+  Handles the uploading of a file, stores the uploaded file path in the session, 
+  stores it in supabase files bucket, and returns the file path This function 
+  does not store the file in the database.
   """
   if request.method == 'POST':
     if 'file' not in request.files:
@@ -34,24 +34,40 @@ def upload_file():
     uploaded_filename = secure_filename(uploaded_file.filename)
     
     print("===============================")
-    print("Uploading " + uploaded_filename)
+    print("Uploading the " + uploaded_filename + " file to the supabase bucket")
+    
     start_time = time()
+    response = upload_file_to_bucket('files', uploaded_file)
     
-    if not os.path.exists(UPLOADS_FOLDER):
-      print("===============================")
-      print("Creating " + UPLOADS_FOLDER + " folder")
-      os.makedirs(UPLOADS_FOLDER)
-      
-    path = os.path.join(UPLOADS_FOLDER, uploaded_filename)
-      
-    uploaded_file.save(path)
-    session['uploaded_file'] = path
-    
-    elapsed_time = time() - start_time
     print("===============================")
-    print(f"New input file saved locally at {path} folder in {elapsed_time:.2f} seconds")
+    elapsed_time = time() - start_time
     
-    return jsonify({'file_path': path}), HTTP_201_CREATED
+    if response is HTTP_200_OK:
+      print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
+      
+      url = get_file_url_by_name(uploaded_filename)
+      
+      if url is None:
+        return jsonify({'error': 'Failed to get the url of the uploaded file.'}), HTTP_404_NOT_FOUND
+      
+      session['uploaded_file_url'] = url
+      
+      return jsonify({
+        'url': url,
+        'filename': uploaded_filename,
+        'dimensions': get_image_dimensions(uploaded_file),
+        'size': get_image_size(uploaded_file)
+        }), HTTP_201_CREATED
+    
+    elif response is HTTP_400_BAD_REQUEST:
+      print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
+      return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
+    elif response is HTTP_409_CONFLICT:
+      print("The file " + uploaded_filename + " already exists in the supabase bucket")
+      return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
+    else:
+      print("Internal server error either in supabase or files controller.")
+      return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
     
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
