@@ -6,7 +6,7 @@ from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_B
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import validators
-from src.helpers.utility import custom_analyze_image, demo_analyze_image, get_file_dimensions, get_file_size
+from src.helpers.file_utils import custom_analyze_image, demo_analyze_image, get_file_dimensions, get_file_size
 from src.models.files import Files
 from ..extensions import db
 from flask import session
@@ -93,7 +93,7 @@ def analyze_file():
     print(f"Image analyzed in {elapsed_time:.2f} seconds")
     
     # orig_img is of type numpy.ndarray
-    resulting_image = result.orig_img
+    resulting_image = torch.tensor(result[0].orig_img).numpy()
     
     classification = "No Good" if torch.tensor(result[0].boxes.cls).item() > 0 else "Good"
     accuracy = round(torch.tensor(result[0].boxes.conf).item(),2 )
