@@ -104,15 +104,17 @@ def analyze_file():
     
     start_time = time()
     response = upload_file_to_bucket(resulting_image)
+    
     print("===============================")
     elapsed_time = time() - start_time
+    
     if response is HTTP_200_OK:
       print("Uploaded the " + uploaded_filename + " to the supabase bucket in {elapsed_time:.2f} seconds")
     
       url = get_file_url_by_name(uploaded_filename)
       
       if url is None:
-        return jsonify({'error': 'Failed to get the url of the uploaded file.'}), HTTP_400_BAD_REQUEST
+        return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       file = Files(
           name=uploaded_filename, 
@@ -138,6 +140,7 @@ def analyze_file():
         'error_rate': error_rate,
         'resulting_image': resulting_image
         }), HTTP_201_CREATED
+      
     elif response is HTTP_400_BAD_REQUEST:
       print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
       return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
