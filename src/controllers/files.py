@@ -220,3 +220,31 @@ def get_file(id):
     'created_at': file.created_at,
     'updated_at': file.updated_at
     }), HTTP_200_OK
+
+@files.delete('/<int:id>/delete')
+@jwt_required()
+def delete_by_id(id):
+  """
+  Deletes the file object based on its ID and the current user's identity.
+
+  Parameters:
+    `id`: The unique identifier of the file that the user wants to delete.
+
+  Returns:
+    `JSON response`: Message with a status code of `200 (HTTP_200_OK)`.
+
+    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+  """
+  current_user = get_jwt_identity()
+  
+  file = Files.query.filter_by(user_id=current_user, id=id).first()
+  
+  if not file:
+    return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
+  
+  delete_file_by_name('files', file.name)
+  
+  db.session.delete(file)
+  db.session.commit()
+  
+  return jsonify({'message': 'File successfully deleted'}), HTTP_200_OK
