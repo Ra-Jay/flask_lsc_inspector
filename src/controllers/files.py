@@ -169,3 +169,54 @@ def analyze_file():
     else:
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
+    
+@files.get('/')
+@jwt_required()
+def get_files():
+  current_user = get_jwt_identity()
+  
+  files = Files.query.filter_by(user_id=current_user)
+  
+  if not files:
+    return jsonify({'message': 'No files found'}), HTTP_404_NOT_FOUND
+  
+  data=[]
+  
+  for file in files:
+    data.append({
+      'id': file.id,
+      'name': file.name,
+      'dimensions': file.dimensions,
+      'size': file.size,
+      'url': file.url,
+      'classification': file.classification,
+      'accuracy': file.accuracy,
+      'error_rate': file.error_rate,
+      'created_at': file.created_at,
+      'updated_at': file.updated_at
+      })
+  
+  return jsonify({'data': data}), HTTP_200_OK
+
+@files.get('/<int:id>')
+@jwt_required()
+def get_file(id):
+  current_user = get_jwt_identity()
+  
+  file = Files.query.filter_by(user_id=current_user, id=id).first()
+  
+  if not file:
+    return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
+  
+  return jsonify({
+    'id': file.id,
+    'name': file.name,
+    'dimensions': file.dimensions,
+    'size': file.size,
+    'url': file.url,
+    'classification': file.classification,
+    'accuracy': file.accuracy,
+    'error_rate': file.error_rate,
+    'created_at': file.created_at,
+    'updated_at': file.updated_at
+    }), HTTP_200_OK
