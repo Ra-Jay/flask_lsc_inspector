@@ -164,6 +164,8 @@ def delete_by_id(id):
 
     if not weight:
         return jsonify({'message': 'Weights not found'}), HTTP_404_NOT_FOUND
+    
+    delete_file_by_name('weights', weight.name)
 
     db.session.delete(weight)
     db.session.commit()
