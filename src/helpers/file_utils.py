@@ -3,6 +3,15 @@ import numpy as np
 from PIL import Image
 
 def get_image(file):
+    """
+    Convert a file(np.ndarray) to image(PIL).
+    
+    Parameters:
+        `file`: The file that the user want to convert.
+
+    Returns:
+        `image`: Pillow object as an image.
+    """
     try:
         image = Image.fromarray(np.uint8(file))
         return image
@@ -11,6 +20,15 @@ def get_image(file):
         return None
 
 def get_image_dimensions(file):
+    """
+    Get the dimensions of an image.
+    
+    Parameters:
+        `file`: The file that the user want to get the dimensions.
+        
+    Returns:
+        `str`: The dimensions of the image.
+    """
     try:
         image = get_image(file)
         width, height = image.size
@@ -20,6 +38,15 @@ def get_image_dimensions(file):
         return None
 
 def get_image_size(file):
+    """
+    Get the size of an image.
+    
+    Parameters:
+        `file`: The file that the user want to get the size.
+        
+    Returns:
+        `str`: The size of the image.
+    """
     try:
         image = get_image(file)
         with io.BytesIO() as buf:

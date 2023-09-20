@@ -19,12 +19,21 @@ files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
 @files.route('/upload', methods=['POST', 'GET'])
 @jwt_required()
-def upload_file():
+def upload():
   """
-  Handles the uploading of a file, stores the uploaded file path in the session, 
-  stores it in supabase files bucket, and returns the file path This function 
-  does not store the file in the database.
-  """
+  Handles the uploaded file to the supabase bucket. 
+  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`,
+  `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  
+  Returns:
+    `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
+    
+    `400 (HTTP_400_BAD_REQUEST)`: If no file is uploaded.
+    
+    `409 (HTTP_409_CONFLICT)`: If the file already exists in the supabase bucket.
+    
+    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+  """  
   if request.method == 'POST':
     if 'file' not in request.files:
       return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
@@ -71,12 +80,21 @@ def upload_file():
     
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
-def analyze_file():
+def analyze():
   """
-  Handles the analysis of the uploaded file using the uploaded custom weights, stores the analysis
-  results in a database, and returns the analysis details along with the resulting image after 
-  being uploaded in the supabase files bucket.
-  """
+  Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
+  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`, 
+  `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+
+  Returns:
+    `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
+    
+    `400 (HTTP_400_BAD_REQUEST)`: If no file is uploaded.
+    
+    `409 (HTTP_409_CONFLICT)`: If the file already exists in the supabase bucket.
+    
+    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+  """  
   current_user = get_jwt_identity()
   
   if request.method == 'POST':
@@ -105,7 +123,7 @@ def analyze_file():
     start_time = time()
     
     # Predict the uploaded file using the custom weights of the user that was uploaded in the database and stored in session.
-    result = custom_analyze_image(uploaded_filename, session_custom_weights_url)
+    result = custom_analyze_image(uploaded_file_url, session_custom_weights_url)
     
     elapsed_time = time() - start_time
     print("\n===============================")
@@ -172,7 +190,16 @@ def analyze_file():
     
 @files.get('/')
 @jwt_required()
-def get_files():
+def get_all():
+  """
+  Retrieves files associated with the current user. Each file object in the list includes the following attributes: 
+  `id`, `name`, `dimensions`, `size`, `url`, `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`. 
+  
+  Returns: 
+    `JSON response`: List of file objects with a status code of `200 (HTTP_200_OK)`.
+    
+    `404 (HTTP_404_NOT_FOUND)`: If the files are not found.
+  """
   current_user = get_jwt_identity()
   
   files = Files.query.filter_by(user_id=current_user)
@@ -200,7 +227,20 @@ def get_files():
 
 @files.get('/<int:id>')
 @jwt_required()
-def get_file(id):
+def get_by_id(id):
+  """
+  Retrieves information about a file based on its ID and the current user's identity. 
+  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`, 
+  `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  
+  Parameters: 
+    `id`: The unique identifier of the file that the user want to retrieve.
+    
+  Returns:
+    `JSON response`: File object with a status code of `200 (HTTP_200_OK)`.
+
+    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+  """
   current_user = get_jwt_identity()
   
   file = Files.query.filter_by(user_id=current_user, id=id).first()

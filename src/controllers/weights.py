@@ -11,14 +11,26 @@ from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-
 weights = Blueprint("weights", __name__, url_prefix="/api/v1/weights")
 
 WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights')
 
 @weights.route('/upload', methods=['POST', 'GET'])
 @jwt_required()
-def upload_weights():
+def upload():
+    """
+    Handles the uploaded weights file to the supabase bucket.
+    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+
+    Returns:
+        `JSON Response`: Weights object with a status code of `201 (HTTP_201_CREATED)`.
+        
+        `HTTP_400_BAD_REQUEST`: If the weights file is not found.
+        
+        `HTTP_409_CONFLICT`: If the weights file already exists in the supabase bucket.
+        
+        `HTTP_500_INTERNAL_SERVER_ERROR`: If there is an internal server error either in supabase or source code.
+    """    
     current_user = get_jwt_identity()
 
     if request.method == 'POST':
@@ -103,7 +115,19 @@ def get_all():
 
 @weights.get('/<int:id>')
 @jwt_required()
-def get_weight(id):
+def get_by_id(id):
+    """
+    Retrieves the weights object based on its ID and the current user's identity.
+    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+    
+    Parameters:
+        `id`: The unique identifier of the weights that the user wants to retrieve.
+
+    Returns:
+        `JSON Response`: Weight object with a status code of `200 (HTTP_200_OK)`.
+        
+        `HTTP_404_NOT_FOUND`: If the weights is not found.
+    """    
     current_user = get_jwt_identity()
 
     weight = Weights.query.filter_by(user_id=current_user, id=id).first()
@@ -120,17 +144,28 @@ def get_weight(id):
         }), HTTP_200_OK
 
 
-@weights.delete('/<int:id>')
+@weights.delete('/<int:id>/delete')
 @jwt_required()
-def delete_weight(id):
+def delete_by_id(id):
+    """
+    Deletes the weights object based on its ID and the current user's identity.
+
+    Parameters:
+        `id`: The unique identifier of the weights that the user wants to delete.
+
+    Returns:
+        `JSON Response`: Message with a status code of `200 (HTTP_200_OK)`.
+        
+        `HTTP_404_NOT_FOUND`: If the weights is not found.
+    """    
     current_user = get_jwt_identity()
 
     weight = Weights.query.filter_by(user_id=current_user, id=id).first()
 
     if not weight:
-        return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
+        return jsonify({'message': 'Weights not found'}), HTTP_404_NOT_FOUND
 
     db.session.delete(weight)
     db.session.commit()
 
-    return jsonify({'message': 'Item successfully deleted'}), HTTP_200_OK
+    return jsonify({'message': 'Weights successfully deleted'}), HTTP_200_OK
