@@ -70,6 +70,36 @@ def upload_weights():
             print("Internal server error either in supabase or weights controller.")
             return jsonify({'error': "Internal server error either in supabase or weights controller."}), HTTP_500_INTERNAL_SERVER_ERROR
 
+@weights.get('/')
+@jwt_required()
+def get_all():
+    """
+    Retrieves all the weights objects based on the current user's identity.
+    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+
+    Returns:
+        `JSON Response`: List of weights objects with a status code of `200 (HTTP_200_OK)`.
+        
+        `HTTP_404_NOT_FOUND`: If the weights is not found.
+    """    
+    current_user = get_jwt_identity()
+
+    weights = Weights.query.filter_by(user_id=current_user).all()
+
+    if not weights:
+        return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
+    
+    data = []
+    for weight in weights:
+        data.append({
+            'id': weight.id,
+            'name': weight.name,
+            'url': weight.url,
+            'created_at': weight.created_at,
+            'updated_at': weight.updated_at
+        })
+
+    return jsonify({'data': data}), HTTP_200_OK
 
 @weights.get('/<int:id>')
 @jwt_required()
