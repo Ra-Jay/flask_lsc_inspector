@@ -1,5 +1,5 @@
 from flask_restx import Resource, Namespace 
-from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 import validators   
@@ -7,10 +7,12 @@ from src.models.users import Users
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from ..schema.users import users_model, user_input_model
+# from flasgger.utils import swag_from 
 
-auth = Blueprint("auth", __name__, url_prefix="/api/v1/auth/")
+auth = Blueprint("auth", __name__, url_prefix="/api/v1/users")
 
 @auth.post('register')
+# @swag_from('../docs/user/register.yml')
 def register():
     username=request.json['username']
     email=request.json['email']
@@ -51,7 +53,7 @@ def register():
 
 
 @auth.post('/login')
-# @swag_from('./docs/auth/login.yaml')
+# @swag_from('../docs/user/login.yml')
 def login():
     email = request.json.get('email', '')
     password = request.json.get('password', '')
@@ -112,6 +114,7 @@ def get_users():
             'id': user.id,
             'username': user.username,
             'email': user.email,
+            'password': user.password,
             'created_at': user.created_at,
             'updated_at': user.updated_at
         })

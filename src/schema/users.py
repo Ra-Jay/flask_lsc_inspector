@@ -15,3 +15,8 @@ user_input_model = api.model("UserInput", {
     'email': fields.String,
     'password': fields.String
 })
+
+user_login_input_model = api.model("UserLoginInput", {
+    'email': fields.String,
+    'password': fields.String
+})

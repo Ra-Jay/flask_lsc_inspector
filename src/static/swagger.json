@@ -1,0 +1,360 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "description": "LSC-Inspector",
+        "version": "1.0.0",
+        "title": "Intellysis API"
+    },
+    "tags": [
+        {
+            "name": "Users",
+            "description": "Users tags"
+        },
+        {
+            "name": "Weights",
+            "description": "Weights tags"
+        },
+        {
+            "name": "Files",
+            "description": "Files tags"
+        }
+    ],
+    "servers": [
+        {
+            "url": "/api/v1/"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "user_model": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "tpye": "integer"
+                    },
+                    "username": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "user_input_model": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "user_login_model":{
+                "type" : "object",
+                "properties" : {
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "user_update_model":{
+                "type": "object",
+                "properties" :{
+                    "username": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+                }
+            },
+            "weights_model":{
+                "type": "object",
+                "properties" :{
+                    "id": {
+                        "type": "integer"
+                    },
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "weights_delete_model":{
+                "type": "object",
+                "properties" :{
+                    "id": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "securitySchemes": {
+                "Bearer": {
+                    "type": "apiKey",
+                    "name": "Authorization",
+                    "in": "header",
+                    "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+                }   
+            }
+        },
+        "paths": {
+            "/users/login": {
+                "post": {
+                    "tags": [
+                        "Users"
+                    ],
+                    "summary": "login users",
+                    "requestBody": {
+                        "description": "Logs in the user",
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/user_login_model"
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_login_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_login_model"
+                        }
+                    }
+                    }
+                }
+            },
+            "/users/register": {
+                "post": {
+                    "tags": [
+                        "Users"
+                    ],
+                    "summary": "creates new user",
+                    "requestBody": {
+                        "description": "creates new user",
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/user_input_model"
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        }
+                    }
+                }
+            }, 
+            "/users/": {
+                "get": {
+                    "tags": [
+                        "Users"
+                    ],
+                    "summary": "gets logged in user",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            }
+                        }
+                    }
+                },
+                "put": {
+                    "tags": [
+                        "Users"
+                    ],
+                    "summary": "update users",
+                    "requestBody": {
+                        "description": "updates the user",
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/user_update_model"
+                                }
+                            }
+                        }
+                    },
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_login_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_login_model"
+                            }
+                        }
+                    }
+                }
+            }, 
+            "/users": {
+                "get": {
+                    "tags": [
+                        "Users"
+                    ],
+                    "summary": "gets all users",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_model"
+                            }
+                        }
+                    }
+                }
+            },
+            "/weights": {
+                "get": {
+                    "tags": [
+                        "Weights"
+                    ],
+                    "summary": "gets all available weights",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        }
+                    }
+                }
+            }, 
+            "/weights/{id}": {
+                "post": {
+                    "tags": [
+                        "Weights"
+                    ],
+                    "summary": "creates a new weight",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK"
+                        },
+                        "404": {
+                            "description": "NOT FOUND"
+                        }
+                    }
+                },
+                "get": {
+                    "tags": [
+                        "Weights"
+                    ],
+                    "summary": "gets a single weight by id",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        },
+                        "404": {
+                            "description": "NOT FOUND",
+                            "schema": {
+                            "$ref": "#/components/schemas/user_input_model"
+                            }
+                        }
+                    }
+                },
+                "delete": {
+                    "tags": [
+                        "Weights"
+                    ],
+                    "operationId": "deletePet",
+                    "parameters": [
+                        {
+                          "name": "id",
+                          "in": "path",
+                          "description": "ID of the weight that needs to be deleted",
+                          "required": true,
+                          "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                          }
+                        }
+                      ],
+                    "summary": "removes a single weight by id",
+                    "security": [{"Bearer": []}],
+                    "responses": {
+                        "200": {
+                            "description": "OK"
+                        },
+                        "404": {
+                            "description": "NOT FOUND"
+                        }
+                    }
+                }
+            }
+        
+    }
+}
