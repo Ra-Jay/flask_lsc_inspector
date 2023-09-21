@@ -5,6 +5,7 @@ from src.controllers.user import auth
 from src.controllers.weights import weights
 from flask_jwt_extended import JWTManager
 from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
 import os
 
 def create_app(test_config=None):
@@ -47,6 +48,7 @@ def create_app(test_config=None):
     )
 
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+    CORS(app)
         
     # @app.errorhandler(HTTP_404_NOT_FOUND)
     # def handle_404(e):
@@ -54,6 +56,5 @@ def create_app(test_config=None):
 
     # @app.errorhandler(HTTP_500_INTERNAL_SERVER_ERROR)
     # def handle_500(e):
-    #     return jsonify({'error': 'Something went wrong, we are working on it'}), HTTP_500_INTERNAL_SERVER_ERROR
-
+    #     return jsonify({'error': 'Something went wrong, we are working on it'}), HTTP_500_INTERNAL_SERVER_ERRORs
     return app
