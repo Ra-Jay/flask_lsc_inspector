@@ -1,10 +1,13 @@
 from flask import Flask
-import os
+from src.constants.status_codes import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from src.extensions import api, db
 from src.controllers.user import auth
 from src.controllers.weights import weights
 from src.controllers.files import files
 from flask_jwt_extended import JWTManager
+from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
+import os
 
 def create_app(test_config=None):
      
@@ -24,6 +27,7 @@ def create_app(test_config=None):
             SUPABASE_BUCKET_PROFILE_IMAGES=os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
         )
 
+
     else: 
         app.config.from_mapping(test_config)
 
@@ -38,5 +42,25 @@ def create_app(test_config=None):
     app.register_blueprint(auth)
     app.register_blueprint(weights)
     app.register_blueprint(files)
+
+    SWAGGER_URL = '/swagger'
+    API_URL = '../static/swagger.json'
+    swaggerui_blueprint = get_swaggerui_blueprint(
+        SWAGGER_URL,  
+        API_URL,
+        config={  
+            'app_name': "LSC-Inspector Application"
+        }
+    )
+
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+    CORS(app)
         
+    # @app.errorhandler(HTTP_404_NOT_FOUND)
+    # def handle_404(e):
+    #     return jsonify({'error': 'Not found'}), HTTP_404_NOT_FOUND
+
+    # @app.errorhandler(HTTP_500_INTERNAL_SERVER_ERROR)
+    # def handle_500(e):
+    #     return jsonify({'error': 'Something went wrong, we are working on it'}), HTTP_500_INTERNAL_SERVER_ERRORs
     return app
