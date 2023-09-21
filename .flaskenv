@@ -1,7 +1,7 @@
 export FLASK_ENV=development
 export FLASK_APP=src/__init__.py
 export SQLALCHEMY_DB_URI=mysql+pymysql://root@localhost:3306/lsc_inspector
-export JWT_SECRET_KEY='JWT_SECRET_KEY
+export JWT_SECRET_KEY=JWT_SECRET_KEY
 export FLASK_DEBUG=True
 export SUPABASE_URL=https://tgbqbnhnyjakucemhefo.supabase.co/
 export SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnYnFibmhueWpha3VjZW1oZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTQ3NTg1NjQsImV4cCI6MjAxMDMzNDU2NH0.wxVjFK5HBbOwTpe7fbd7Sl6pqAzZnkPloTqxkFPb9RI
