@@ -49,11 +49,6 @@ def demo_inference(image_url):
         
         draw.rectangle([x0, y0, x1, y1], outline="red", width=2)
         draw.text((x0, y0), f"{bounding_box['class']}: {bounding_box['confidence']:.2f}", fill="red")
-        
-    # Convert image to bytes if uploading to bucket
-    # buffered = BytesIO()
-    # image.save(buffered, format="PNG")
-    # image_data = buffered.getvalue()
     
     return image
   else:

@@ -41,6 +41,7 @@ def upload_file_to_bucket(bucket, file_name, file):
     """
     return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/*"})
 
+# This method is tested and working
 def download_file_from_bucket(bucket, file_name):
     """
     Downloads a file from a specified bucket.
