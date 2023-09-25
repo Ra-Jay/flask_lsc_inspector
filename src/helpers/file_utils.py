@@ -93,3 +93,40 @@ def convert_image_to_bytes(image):
     except Exception as e:
         print(f"Error while converting image to bytes: {e}")
         return None
+
+def convert_bytes_to_image(bytes):
+    """
+    Convert bytes to image.
+    
+    Parameters:
+        `bytes`: The bytes that the user want to convert.
+        
+    Returns:
+        `image`: The bytes as image.
+    """
+    try:
+        image = Image.open(io.BytesIO(bytes))
+        return image
+    except Exception as e:
+        print(f"Error while converting bytes to image: {e}")
+        return None
+    
+# This method is tested and working
+def save_image(bytes, file_path):
+    """
+    Save an image to the local filesystem.
+    
+    Parameters:
+        `image`: The image that the user want to save.
+        
+        `image_name`: The name of the image that the user want to save.
+        
+    Returns:
+        `bool`: True if the image is saved successfully, False otherwise.
+    """
+    try:
+        convert_bytes_to_image(bytes).save(file_path)
+        return True
+    except Exception as e:
+        print(f"Error while saving image to the local filesystem: {e}")
+        return False
