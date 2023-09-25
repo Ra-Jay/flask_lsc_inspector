@@ -6,9 +6,10 @@ from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_B
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import validators
-from src.helpers.file_utils import get_image_dimensions, get_image_size
+from src.helpers.file_utils import get_image_dimensions, get_image_size, convert_file_to_image, convert_image_to_bytes
 from src.helpers.yolo_utils import custom_analyze_image, demo_analyze_image
 from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, get_all_files_from_bucket, delete_file_by_name
+from src.helpers.roboflow_utils import demo_inference, custom_inference
 from src.models.files import Files
 from ..extensions import db
 from flask import session
@@ -187,7 +188,43 @@ def analyze():
     else:
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
+
+# First half of demo method is tested except for returning the resulting_image.    
+@files.route('/demo', methods=['POST', 'GET'])
+@jwt_required()
+def demo():
+  current_user = get_jwt_identity()
+  
+  if request.method == 'POST':
+    uploaded_file_url = session.get('uploaded_file_url')
     
+    if uploaded_file_url is None:
+      return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
+    
+    uploaded_filename = os.path.basename(uploaded_file_url)
+    
+    print("===============================")
+    print("Analyzing " + uploaded_filename + " file")
+    start_time = time()
+    
+    result = demo_inference(uploaded_file_url)
+    
+    elapsed_time = time() - start_time
+    print("\n===============================")
+    print(f"Image analyzed in {elapsed_time:.2f} seconds")
+    
+    if result is None:
+      return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
+    
+    # Return the resulting image as bytes to the frontend
+    resulting_image = convert_image_to_bytes(result)
+    
+    return jsonify({
+      'resulting_image': resulting_image
+      }), HTTP_201_CREATED
+    
+    
+
 @files.get('/')
 @jwt_required()
 def get_all():
