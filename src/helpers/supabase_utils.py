@@ -21,14 +21,13 @@ def get_bucket_type(bucket):
     """
     if bucket == 'files':
         return files
-    elif bucket == 'weights':
-        return weights
     elif bucket == 'profile_images':
         return profile_images
     else:
         return None
 
-def upload_file_to_bucket(bucket, filepath):
+# This method is tested and working
+def upload_file_to_bucket(bucket, file_name, file):
     """
     Uploads a file to a specified bucket.
     
@@ -40,11 +39,9 @@ def upload_file_to_bucket(bucket, filepath):
     Returns:
         `JSON Response`: The response from the supabase server.
     """
-    with open(filepath, 'rb+') as f:
-        response = supabase.storage.from_(get_bucket_type(bucket)).upload(filepath, f)
-    return response
+    return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/*"})
 
-def download_file_from_bucket(bucket, filename):
+def download_file_from_bucket(bucket, file_name):
     """
     Downloads a file from a specified bucket.
     
@@ -56,10 +53,10 @@ def download_file_from_bucket(bucket, filename):
     Returns:
         `bytes`: The file data in bytes.
     """
-    data = supabase.storage.from_(get_bucket_type(bucket)).download(filename)
-    return data
+    return supabase.storage.from_(get_bucket_type(bucket)).download(file_name)
 
-def get_file_url_by_name(bucket, filename):
+# This method is tested and working
+def get_file_url_by_name(bucket, file_name):
     """
     Gets the public url of a file from a specified bucket.
     
@@ -71,8 +68,9 @@ def get_file_url_by_name(bucket, filename):
     Returns:
         `str`: The public url of the file.
     """
-    return supabase.storage.from_(get_bucket_type(bucket)).get_public_url(filename)
+    return supabase.storage.from_(get_bucket_type(bucket)).get_public_url(file_name)
 
+# This method is tested and working
 def get_all_files_from_bucket(bucket):
     """
     Gets all the files from a specified bucket.
@@ -85,7 +83,8 @@ def get_all_files_from_bucket(bucket):
     """
     return supabase.storage.from_(get_bucket_type(bucket)).list()
 
-def delete_file_by_name(bucket, filename):
+# This method is tested and working
+def delete_file_by_name(bucket, file_name):
     """
     Deletes a file from a specified bucket.
     
@@ -97,4 +96,4 @@ def delete_file_by_name(bucket, filename):
     Returns:
         `JSON Response`: The response from the supabase server.
     """
-    return supabase.storage.from_(get_bucket_type(bucket)).remove(filename)
+    return supabase.storage.from_(get_bucket_type(bucket)).remove(file_name)
