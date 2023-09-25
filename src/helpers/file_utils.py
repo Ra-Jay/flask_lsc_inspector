@@ -57,3 +57,39 @@ def get_image_size(file):
     except Exception as e:
         print(f"Error while getting image size: {e}")
         return None
+    
+def convert_file_to_image(file):
+    """
+    Convert a file to image.
+    
+    Parameters:
+        `file`: The file that the user want to convert.
+        
+    Returns:
+        `image`: The file as image.
+    """
+    try:
+        image = Image.open(file)
+        return image
+    except Exception as e:
+        print(f"Error while converting file to image: {e}")
+        return None
+
+def convert_image_to_bytes(image):
+    """
+    Convert an image to bytes.
+    
+    Parameters:
+        `image`: The image that the user want to convert.
+        
+    Returns:
+        `bytes`: The image as bytes.
+    """
+    try:
+        with io.BytesIO() as buf:
+            image.save(buf, format='PNG')
+            image_bytes = buf.getvalue()
+            return image_bytes
+    except Exception as e:
+        print(f"Error while converting image to bytes: {e}")
+        return None
