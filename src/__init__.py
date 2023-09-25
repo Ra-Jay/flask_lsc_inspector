@@ -25,6 +25,8 @@ def create_app(test_config=None):
             SUPABASE_BUCKET_FILES=os.environ.get('SUPABASE_BUCKET_FILES'),
             SUPABASE_BUCKET_WEIGHTS=os.environ.get('SUPABASE_BUCKET_WEIGHTS'),
             SUPABASE_BUCKET_PROFILE_IMAGES=os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
+            ROBOFLOW_API_KEY=os.environ.get('ROBOFLOW_API_KEY'),
+            ROBOFLOW_PROJECT=os.environ.get('ROBOFLOW_PROJECT'),
         )
 
 

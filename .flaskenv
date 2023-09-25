@@ -8,3 +8,5 @@ export SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 export SUPABASE_BUCKET_FILES=lsc_files
 export SUPABASE_BUCKET_WEIGHTS=lsc_weights
 export SUPABASE_BUCKET_PROFILE_IMAGES=lsc_profile_images
+export ROBOFLOW_API_KEY=lnVB1Fnjsd5EdDdsnMg7
+export ROBOFLOW_PROJECT=lsc-inspector
