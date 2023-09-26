@@ -58,6 +58,23 @@ def get_image_size(file):
         print(f"Error while getting image size: {e}")
         return None
     
+# Method that converts FileStorage to bytes
+def convert_file_to_bytes(file):
+    """
+    Convert a file to bytes.
+    
+    Parameters:
+        `file`: The file that the user want to convert.
+        
+    Returns:
+        `bytes`: The file as bytes.
+    """
+    try:
+        return file.read()
+    except Exception as e:
+        print(f"Error while converting file to bytes: {e}")
+        return None  
+    
 def convert_file_to_image(file):
     """
     Convert a file to image.
