@@ -3,6 +3,7 @@ from src.constants.status_codes import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SER
 from src.extensions import api, db
 from src.controllers.user import auth
 from src.controllers.weights import weights
+from src.controllers.files import files
 from flask_jwt_extended import JWTManager
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS
@@ -19,6 +20,13 @@ def create_app(test_config=None):
             SQLALCHEMY_DATABASE_URI=os.environ.get('SQLALCHEMY_DB_URI'),
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             JWT_SECRET_KEY=os.environ.get(  'JWT_SECRET_KEY'),
+            SUPABASE_URL=os.environ.get('SUPABASE_URL'),
+            SUPABASE_KEY=os.environ.get('SUPABASE_KEY'),
+            SUPABASE_BUCKET_FILES=os.environ.get('SUPABASE_BUCKET_FILES'),
+            SUPABASE_BUCKET_WEIGHTS=os.environ.get('SUPABASE_BUCKET_WEIGHTS'),
+            SUPABASE_BUCKET_PROFILE_IMAGES=os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
+            ROBOFLOW_API_KEY=os.environ.get('ROBOFLOW_API_KEY'),
+            ROBOFLOW_PROJECT=os.environ.get('ROBOFLOW_PROJECT'),
         )
 
 
@@ -29,13 +37,13 @@ def create_app(test_config=None):
     api.init_app(app)
     db.init_app(app)
     
-    # with app.app_context():
-    #     db.create_all()
-    
+    with app.app_context():
+        db.create_all()
 
     JWTManager(app)
     app.register_blueprint(auth)
     app.register_blueprint(weights)
+    app.register_blueprint(files)
 
     SWAGGER_URL = '/swagger'
     API_URL = '../static/swagger.json'
