@@ -19,9 +19,9 @@ def get_bucket_type(bucket):
     Returns:
         `str`: The bucket type.
     """
-    if bucket == 'files':
+    if bucket == 'lsc_files':
         return files
-    elif bucket == 'profile_images':
+    elif bucket == 'lsc_profile_images':
         return profile_images
     else:
         return None
@@ -39,7 +39,11 @@ def upload_file_to_bucket(bucket, file_name, file):
     Returns:
         `JSON Response`: The response from the supabase server.
     """
-    return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/*"})
+    # Check if image extension if png or jpeg
+    if file_name.endswith('.png'):
+        return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/png"})
+    elif file_name.endswith('.jpg') or file_name.endswith('.jpeg'):
+        return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/jpeg"})
 
 # This method is tested and working
 def download_file_from_bucket(bucket, file_name):
