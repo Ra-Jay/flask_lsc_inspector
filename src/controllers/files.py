@@ -219,24 +219,24 @@ def demo():
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
     # Return the resulting image as bytes to the frontend
-    resulting_image = convert_image_to_bytes(result)
+    resulting_image_data = convert_image_to_bytes(result)
     
     start_time = time()
-    response = upload_file_to_bucket('files', uploaded_filename, result)
+    response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, resulting_image_data)
     
     print("===============================")
     elapsed_time = time() - start_time
       
-    if response is HTTP_200_OK:
+    if response.status_code == HTTP_200_OK:
       print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
       
-      url = get_file_url_by_name(uploaded_filename)
+      response_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
-      if url is None:
+      if response_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       return jsonify({
-        'url': url}), HTTP_201_CREATED
+        'url': response_url}), HTTP_201_CREATED
       
     else:
       print("Internal server error either in supabase or files controller.")
