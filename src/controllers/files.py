@@ -18,6 +18,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
+# This method is tested and working
 @files.route('/upload', methods=['POST', 'GET'])
 def upload():
   """
@@ -57,7 +58,7 @@ def upload():
     if response.status_code == HTTP_200_OK:
       print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
       
-      response_url = str(response.request.url)
+      response_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
       if response_url is None:
           return jsonify({'error': 'Failed to get the URL of the uploaded file.'}), HTTP_404_NOT_FOUND
@@ -65,7 +66,7 @@ def upload():
       session['uploaded_file_url'] = response_url
     
       return jsonify({
-          'url': str(response_url),
+          'url': response_url,
           'filename': uploaded_filename,
           'dimensions': get_image_dimensions(uploaded_data),
           'size': get_image_size(uploaded_data)
@@ -195,7 +196,6 @@ def analyze():
 
 # First half of demo method is tested except for returning the resulting_image.    
 @files.route('/demo', methods=['POST', 'GET'])
-@jwt_required()
 def demo():
   if request.method == 'POST':
     uploaded_file_url = session.get('uploaded_file_url')
