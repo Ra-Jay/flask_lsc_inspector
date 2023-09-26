@@ -19,9 +19,9 @@ def get_bucket_type(bucket):
     Returns:
         `str`: The bucket type.
     """
-    if bucket == 'files':
+    if bucket == 'lsc_files':
         return files
-    elif bucket == 'profile_images':
+    elif bucket == 'lsc_profile_images':
         return profile_images
     else:
         return None
