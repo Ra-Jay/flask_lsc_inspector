@@ -55,32 +55,34 @@ def upload():
     print("===============================")
     elapsed_time = time() - start_time
     
-    if response is HTTP_200_OK:
+    if response.status_code == HTTP_200_OK:
       print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
       
-      url = get_file_url_by_name('files', uploaded_filename)
+      response_url = str(response.request.url)
       
-      if url is None:
-        return jsonify({'error': 'Failed to get the url of the uploaded file.'}), HTTP_404_NOT_FOUND
+      if response_url is None:
+          return jsonify({'error': 'Failed to get the URL of the uploaded file.'}), HTTP_404_NOT_FOUND
       
-      session['uploaded_file_url'] = url
-      
-      return jsonify({
-        'url': url,
-        'filename': uploaded_filename,
-        'dimensions': get_image_dimensions(uploaded_file),
-        'size': get_image_size(uploaded_file)
-        }), HTTP_201_CREATED
+      session['uploaded_file_url'] = response_url
     
-    elif response is HTTP_400_BAD_REQUEST:
-      print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
-      return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-    elif response is HTTP_409_CONFLICT:
-      print("The file " + uploaded_filename + " already exists in the supabase bucket")
-      return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
+      return jsonify({
+          'url': str(response_url),
+          'filename': uploaded_filename,
+          'dimensions': get_image_dimensions(uploaded_data),
+          'size': get_image_size(uploaded_data)
+      }), HTTP_201_CREATED
+
+    elif response.status_code == HTTP_400_BAD_REQUEST:
+        print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
+        return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
+
+    elif response.status_code == HTTP_409_CONFLICT:
+        print("The file " + uploaded_filename + " already exists in the supabase bucket")
+        return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
+
     else:
-      print("Internal server error either in supabase or files controller.")
-      return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
+        print("Internal server error either in supabase or files controller.")
+        return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
     
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
