@@ -193,8 +193,6 @@ def analyze():
 @files.route('/demo', methods=['POST', 'GET'])
 @jwt_required()
 def demo():
-  current_user = get_jwt_identity()
-  
   if request.method == 'POST':
     uploaded_file_url = session.get('uploaded_file_url')
     
