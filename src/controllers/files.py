@@ -19,7 +19,6 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
 @files.route('/upload', methods=['POST', 'GET'])
-@jwt_required()
 def upload():
   """
   Handles the uploaded file to the supabase bucket. 
