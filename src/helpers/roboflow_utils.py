@@ -24,15 +24,12 @@ def demo_inference(image_url):
   """
   rf = Roboflow(api_key=default_api_key)
   project = rf.workspace().project(default_project)
-
   demo_model = project.version(1).model
   
-  results = demo_model.predict(image_url, confidence=20)
+  image_response = requests.get(image_url)
   
-  response = requests.get(image_url)
-  
-  if response.status_code == 200:
-    image_data = BytesIO(response.content)
+  if image_response.status_code == 200:
+    image_data = BytesIO(image_response.content)
     image = Image.open(image_data)
     
     image_data = np.asarray(image)
@@ -52,7 +49,7 @@ def demo_inference(image_url):
     
     return image
   else:
-    return response.status_code
+    return image_response.status_code
   
 def custom_inference(image_url, api_key, project_name, version_number):
   """
