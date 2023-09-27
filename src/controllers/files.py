@@ -12,7 +12,6 @@ from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from
 from src.helpers.roboflow_utils import demo_inference, custom_inference
 from src.models.files import Files
 from ..extensions import db
-from flask import session
 from time import time
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -50,33 +49,31 @@ def upload():
     print("Uploading the " + uploaded_filename + " file to the supabase bucket")
     
     start_time = time()
-    response = upload_file_to_bucket('lsc_files', uploaded_filename, uploaded_data)
+    supabase_response = upload_file_to_bucket('lsc_files', uploaded_filename, uploaded_data)
     
     print("===============================")
     elapsed_time = time() - start_time
     
-    if response.status_code == HTTP_200_OK:
+    if supabase_response.status_code == HTTP_200_OK:
       print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
       
-      response_url = get_file_url_by_name('lsc_files', uploaded_filename)
+      supabase_file_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
-      if response_url is None:
+      if supabase_file_url is None:
           return jsonify({'error': 'Failed to get the URL of the uploaded file.'}), HTTP_404_NOT_FOUND
-      
-      session['uploaded_file_url'] = response_url
     
       return jsonify({
-          'url': response_url,
+          'url': supabase_file_url,
           'filename': uploaded_filename,
           'dimensions': get_image_dimensions(uploaded_data),
           'size': get_image_size(uploaded_data)
       }), HTTP_201_CREATED
 
-    elif response.status_code == HTTP_400_BAD_REQUEST:
+    elif supabase_response.status_code == HTTP_400_BAD_REQUEST:
         print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
         return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
 
-    elif response.status_code == HTTP_409_CONFLICT:
+    elif supabase_response.status_code == HTTP_409_CONFLICT:
         print("The file " + uploaded_filename + " already exists in the supabase bucket")
         return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
 
@@ -104,7 +101,10 @@ def analyze():
   current_user = get_jwt_identity()
   
   if request.method == 'POST':
-    uploaded_file_url = session.get('uploaded_file_url')
+    uploaded_file_url = request.json['url']
+    # api_key = request.json['api_key']
+    # project_name = request.json['project_name']
+    # version_number = request.json['version_number']
     
     if uploaded_file_url is None:
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
@@ -119,55 +119,44 @@ def analyze():
         'url': existing_file.url
         }), HTTP_409_CONFLICT
     
-    # Assuming the weights controller has also stored the custom weights and retrieved its url from supabase in the session.
-    session_custom_weights_url = session.get('uploaded_custom_weights_url')
-    
-    weights_filename = os.path.basename(session_custom_weights_url)
-    
     print("===============================")
-    print("Analyzing " + uploaded_filename + " using the uploaded " + weights_filename + " weights")
+    print("Analyzing " + uploaded_filename)
     start_time = time()
     
-    # Predict the uploaded file using the custom weights of the user that was uploaded in the database and stored in session.
-    result = custom_analyze_image(uploaded_file_url, session_custom_weights_url)
+    result = custom_inference(image_url=uploaded_file_url)
     
     elapsed_time = time() - start_time
     print("\n===============================")
     print(f"Image analyzed in {elapsed_time:.2f} seconds")
     
-    # orig_img is of type numpy.ndarray
-    resulting_image = torch.tensor(result[0].orig_img).numpy()
+    if result is None:
+      return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
-    classification = "No Good" if torch.tensor(result[0].boxes.cls).item() > 0 else "Good"
-    accuracy = round(torch.tensor(result[0].boxes.conf).item(),2 )
-    error_rate = round(1 - accuracy, 2)
+    result_data = convert_image_to_bytes(result['image'])
     
     start_time = time()
-    # Assuming the resulting image file was previously uploaded in supabase files bucket without the results yet, 
-    # delete that file first before uploading the new one with the results and boxes.
-    delete_file_by_name('files', uploaded_filename)
-    response = upload_file_to_bucket('files', resulting_image)
+    supabase_response = upload_file_to_bucket('lsc_files', 'analyzed_' + uploaded_filename, result_data)
     
     print("===============================")
     elapsed_time = time() - start_time
     
-    if response is HTTP_200_OK:
-      print(f"Successfully uploaded then {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
+    if supabase_response.status_code is HTTP_200_OK:
+      print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
     
-      url = get_file_url_by_name(uploaded_filename)
+      supabase_file_url = get_file_url_by_name('analyzed_' + uploaded_filename)
       
-      if url is None:
+      if supabase_file_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       file = Files(
           name=uploaded_filename, 
-          url=url, 
+          url=supabase_file_url, 
           user_id=current_user, 
-          classification=classification, 
-          accuracy=accuracy, 
-          error_rate=error_rate, 
-          dimensions=get_image_dimensions(resulting_image), 
-          size=get_image_size(resulting_image)
+          classification=result['class'], 
+          accuracy=result['confidence'], 
+          error_rate=result['error_rate'], 
+          dimensions=get_image_dimensions(result_data), 
+          size=get_image_size(result_data)
         )
       db.session.add(file)
       db.session.commit()
@@ -178,27 +167,25 @@ def analyze():
         'dimensions': file.dimensions,
         'size': file.size,
         'url': file.url,
-        'classification': classification,
-        'accuracy': accuracy,
-        'error_rate': error_rate,
-        'resulting_image': resulting_image
+        'classification': file.classification,
+        'accuracy': file.accuracy,
+        'error_rate': file.error_rate
         }), HTTP_201_CREATED
       
-    elif response is HTTP_400_BAD_REQUEST:
+    elif supabase_response.status_code is HTTP_400_BAD_REQUEST:
       print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
       return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-    elif response is HTTP_409_CONFLICT:
+    elif supabase_response.status_code is HTTP_409_CONFLICT:
       print("The file " + uploaded_filename + " already exists in the supabase bucket")
       return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
     else:
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
-
-# First half of demo method is tested except for returning the resulting_image.    
+ 
 @files.route('/demo', methods=['POST', 'GET'])
 def demo():
   if request.method == 'POST':
-    uploaded_file_url = session.get('uploaded_file_url')
+    uploaded_file_url = request.json['url']
     
     if uploaded_file_url is None:
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
@@ -218,25 +205,24 @@ def demo():
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
-    # Return the resulting image as bytes to the frontend
-    resulting_image_data = convert_image_to_bytes(result)
+    result_data = convert_image_to_bytes(result)
     
     start_time = time()
-    response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, resulting_image_data)
+    supabase_response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, result_data)
     
     print("===============================")
     elapsed_time = time() - start_time
       
-    if response.status_code == HTTP_200_OK:
+    if supabase_response.status_code == HTTP_200_OK:
       print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
       
-      response_url = get_file_url_by_name('lsc_files', uploaded_filename)
+      supabase_file_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
-      if response_url is None:
+      if supabase_file_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       return jsonify({
-        'url': response_url}), HTTP_201_CREATED
+        'url': supabase_file_url}), HTTP_201_CREATED
       
     else:
       print("Internal server error either in supabase or files controller.")
