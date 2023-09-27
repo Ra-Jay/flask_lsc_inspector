@@ -51,7 +51,8 @@ def demo_inference(image_url):
   else:
     return image_response.status_code
   
-def custom_inference(image_url, api_key, project_name, version_number):
+ # This method is not tested and might have problems. If api_key, project_name, or version_number is not provided, then the default values will be used.
+def custom_inference(image_url, api_key=default_api_key, project_name=default_project, version_number=1):
   """
   Takes an image URL, performs object detection using a custom
   model from Roboflow, and returns the image with bounding boxes and class labels drawn on it.
@@ -72,15 +73,12 @@ def custom_inference(image_url, api_key, project_name, version_number):
   """
   rf = Roboflow(api_key=api_key)
   project = rf.workspace().project(project_name)
-  
   custom_model = project.version(version_number).model
   
-  results = custom_model.predict(image_url, confidence=20)
+  image_response = requests.get(image_url)
   
-  response = requests.get(image_url)
-  
-  if response.status_code == 200:
-    image_data = BytesIO(response.content)
+  if image_response.status_code == 200:
+    image_data = BytesIO(image_response.content)
     image = Image.open(image_data)
     
     image_data = np.asarray(image)
@@ -100,4 +98,13 @@ def custom_inference(image_url, api_key, project_name, version_number):
     
     return image
   else:
-    return response.status_code
+    return image_response.status_code
+  
+# Previously tested in the notebook. This method is not tested and might have problems especially in model_path.
+# See the jupyter notebook I sent regarding this model_path default post-fix value of the path.
+def deploy_model(api_key, workspace_name, project_name, dataset_version):
+  rf = Roboflow(api_key=api_key)
+  project = rf.workspace(workspace_name).project(project_name)
+  dataset = project.version(dataset_version)
+  
+  project.version(dataset.version).deploy(model_type="yolov8", model_path="runs/detect/train/weights/best.pt")
