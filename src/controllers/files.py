@@ -228,8 +228,32 @@ def demo():
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
     
+@files.post('/download')
+@jwt_required()
+def download():
+  current_user = get_jwt_identity()
+  
+  if request.method == 'POST':
+    file_id_to_download = request.json['id']
+    destination = request.json['destination']
     
-
+    file = Files.query.filter_by(user_id=current_user, id=file_id_to_download).first()
+    
+    if not file:
+      return jsonify({'error': 'File not found.'}), HTTP_404_NOT_FOUND
+    
+    file_data = download_file_from_bucket('lsc_files', file.name)
+    
+    if file_data is None:
+      return jsonify({'error': 'Failed to download the file.'}), HTTP_500_INTERNAL_SERVER_ERROR
+    
+    with open(destination, 'wb') as f:
+      f.write(file_data)
+    
+    return jsonify({
+      'destination': destination
+      }), HTTP_200_OK
+  
 @files.get('/')
 @jwt_required()
 def get_all():
