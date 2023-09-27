@@ -1,18 +1,12 @@
 import os
-
-import torch
-from flask_restx import Resource, Namespace 
-from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
-import validators
-from src.helpers.file_utils import convert_file_to_bytes, get_image_dimensions, get_image_size, convert_file_to_image, convert_image_to_bytes
-from src.helpers.yolo_utils import custom_analyze_image, demo_analyze_image
-from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, get_all_files_from_bucket, delete_file_by_name
+from src.helpers.file_utils import convert_file_to_bytes, get_image_dimensions, get_image_size, convert_image_to_bytes
+from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, delete_file_by_name
 from src.helpers.roboflow_utils import demo_inference, custom_inference
 from src.models.files import Files
 from ..extensions import db
-from time import time
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
@@ -39,24 +33,12 @@ def upload():
       return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
     
     uploaded_file = request.files['file']
-    
-    # Convert FileStorage uploaded_file to bytes
     uploaded_data = convert_file_to_bytes(uploaded_file)
-    
     uploaded_filename = secure_filename(uploaded_file.filename)
-    
-    print("===============================")
-    print("Uploading the " + uploaded_filename + " file to the supabase bucket")
-    
-    start_time = time()
+
     supabase_response = upload_file_to_bucket('lsc_files', uploaded_filename, uploaded_data)
     
-    print("===============================")
-    elapsed_time = time() - start_time
-    
     if supabase_response.status_code == HTTP_200_OK:
-      print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
-      
       supabase_file_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
       if supabase_file_url is None:
@@ -72,11 +54,9 @@ def upload():
     elif supabase_response.status_code == HTTP_400_BAD_REQUEST:
         print("The file " + uploaded_filename + " was not found. Failed to upload to the supabase bucket")
         return jsonify({'error': "The file " + uploaded_filename + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-
     elif supabase_response.status_code == HTTP_409_CONFLICT:
         print("The file " + uploaded_filename + " already exists in the supabase bucket")
         return jsonify({'error': "The file " + uploaded_filename + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
-
     else:
         print("Internal server error either in supabase or files controller.")
         return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
@@ -99,7 +79,6 @@ def analyze():
     `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
   """  
   current_user = get_jwt_identity()
-  
   if request.method == 'POST':
     uploaded_file_url = request.json['url']
     # api_key = request.json['api_key']
@@ -110,39 +89,21 @@ def analyze():
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
     uploaded_filename = os.path.basename(uploaded_file_url)
-    
     existing_file = Files.query.filter_by(name=uploaded_filename, user_id=current_user).first()
-    
     if existing_file:
       return jsonify({
         'error': 'File already exists.',
         'url': existing_file.url
         }), HTTP_409_CONFLICT
     
-    print("===============================")
-    print("Analyzing " + uploaded_filename)
-    start_time = time()
-    
     result = custom_inference(image_url=uploaded_file_url)
-    
-    elapsed_time = time() - start_time
-    print("\n===============================")
-    print(f"Image analyzed in {elapsed_time:.2f} seconds")
-    
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
     result_data = convert_image_to_bytes(result['image'])
-    
-    start_time = time()
     supabase_response = upload_file_to_bucket('lsc_files', 'analyzed_' + uploaded_filename, result_data)
     
-    print("===============================")
-    elapsed_time = time() - start_time
-    
     if supabase_response.status_code is HTTP_200_OK:
-      print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
-    
       supabase_file_url = get_file_url_by_name('analyzed_' + uploaded_filename)
       
       if supabase_file_url is None:
@@ -191,31 +152,15 @@ def demo():
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
     uploaded_filename = os.path.basename(uploaded_file_url)
-    
-    print("===============================")
-    print("Analyzing " + uploaded_filename + " file")
-    start_time = time()
-    
     result = demo_inference(uploaded_file_url)
-    
-    elapsed_time = time() - start_time
-    print("\n===============================")
-    print(f"Image analyzed in {elapsed_time:.2f} seconds")
     
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
     result_data = convert_image_to_bytes(result)
-    
-    start_time = time()
     supabase_response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, result_data)
-    
-    print("===============================")
-    elapsed_time = time() - start_time
       
     if supabase_response.status_code == HTTP_200_OK:
-      print(f"Successfully uploaded the {uploaded_filename} file to the supabase bucket in {elapsed_time:.2f} seconds")
-      
       supabase_file_url = get_file_url_by_name('lsc_files', uploaded_filename)
       
       if supabase_file_url is None:
@@ -223,7 +168,6 @@ def demo():
       
       return jsonify({
         'url': supabase_file_url}), HTTP_201_CREATED
-      
     else:
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
@@ -232,7 +176,6 @@ def demo():
 @jwt_required()
 def download():
   current_user = get_jwt_identity()
-  
   if request.method == 'POST':
     file_id_to_download = request.json['id']
     destination = request.json['destination']
@@ -267,14 +210,12 @@ def get_all():
     `404 (HTTP_404_NOT_FOUND)`: If the files are not found.
   """
   current_user = get_jwt_identity()
-  
   files = Files.query.filter_by(user_id=current_user)
   
   if not files:
-    return jsonify({'message': 'No files found'}), HTTP_404_NOT_FOUND
+    return jsonify({'message': 'No files found'}), HTTP_204_NO_CONTENT
   
   data=[]
-  
   for file in files:
     data.append({
       'id': file.id,
@@ -308,7 +249,6 @@ def get_by_id(id):
     `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
   """
   current_user = get_jwt_identity()
-  
   file = Files.query.filter_by(user_id=current_user, id=id).first()
   
   if not file:
@@ -342,7 +282,6 @@ def delete_by_id(id):
     `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
   """
   current_user = get_jwt_identity()
-  
   file = Files.query.filter_by(user_id=current_user, id=id).first()
   
   if not file:
