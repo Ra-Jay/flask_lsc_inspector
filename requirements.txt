@@ -1,0 +1,17 @@
+flask
+flask-restx
+sqlalchemy
+flask_sqlalchemy
+flask_jwt_extended
+pymysql
+validators
+werkzeug
+python-dotenv
+supabase
+torch
+numpy
+pillow
+flask_cors
+flask_swagger_ui
+roboflow
+requests
