@@ -61,6 +61,7 @@ def upload():
         print("Internal server error either in supabase or files controller.")
         return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
     
+# This method is tested and working
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
 def analyze():
@@ -104,7 +105,7 @@ def analyze():
     supabase_response = upload_file_to_bucket('lsc_files', 'analyzed_' + uploaded_filename, result_data)
     
     if supabase_response.status_code is HTTP_200_OK:
-      supabase_file_url = get_file_url_by_name('analyzed_' + uploaded_filename)
+      supabase_file_url = get_file_url_by_name('lsc_files', 'analyzed_' + uploaded_filename)
       
       if supabase_file_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
@@ -143,6 +144,7 @@ def analyze():
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
  
+# This method is tested and working
 @files.route('/demo', methods=['POST', 'GET'])
 def demo():
   if request.method == 'POST':
@@ -161,7 +163,7 @@ def demo():
     supabase_response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, result_data)
       
     if supabase_response.status_code == HTTP_200_OK:
-      supabase_file_url = get_file_url_by_name('lsc_files', uploaded_filename)
+      supabase_file_url = get_file_url_by_name('lsc_files', 'demo_inferred_' + uploaded_filename)
       
       if supabase_file_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
