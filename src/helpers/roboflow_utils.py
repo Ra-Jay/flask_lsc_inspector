@@ -87,6 +87,9 @@ def custom_inference(image_url, api_key=default_api_key, project_name=default_pr
 
     draw = ImageDraw.Draw(image)
 
+    result_details = dict()
+    result_details['image'] = image
+    
     for bounding_box in results["predictions"]:
         x0 = bounding_box['x'] - bounding_box['width'] / 2
         x1 = bounding_box['x'] + bounding_box['width'] / 2
@@ -95,8 +98,11 @@ def custom_inference(image_url, api_key=default_api_key, project_name=default_pr
         
         draw.rectangle([x0, y0, x1, y1], outline="red", width=2)
         draw.text((x0, y0), f"{bounding_box['class']}: {bounding_box['confidence']:.2f}", fill="red")
+        result_details['class'] = bounding_box['class']
+        result_details['confidence'] = round(bounding_box['confidence'], 2)
+        result_details['error_rate'] = round(1 - bounding_box['confidence'], 2)
     
-    return image
+    return result_details
   else:
     return image_response.status_code
   
