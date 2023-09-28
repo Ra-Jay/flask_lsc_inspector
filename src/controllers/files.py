@@ -169,7 +169,11 @@ def demo():
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       return jsonify({
-        'url': supabase_file_url}), HTTP_201_CREATED
+        'url': supabase_file_url,
+        'classification': result['class'],
+        'accuracy': result['confidence'],
+        'error_rate': result['error_rate'],
+        }), HTTP_201_CREATED
     else:
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
