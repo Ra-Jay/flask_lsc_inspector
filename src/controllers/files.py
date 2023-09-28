@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from src.helpers.file_utils import convert_file_to_bytes, get_image_dimensions, get_image_size, convert_image_to_bytes
 from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, delete_file_by_name
-from src.helpers.roboflow_utils import demo_inference, custom_inference
+from src.helpers.roboflow_utils import perform_inference
 from src.models.files import Files
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -97,7 +97,7 @@ def analyze():
         'url': existing_file.url
         }), HTTP_409_CONFLICT
     
-    result = custom_inference(image_url=uploaded_file_url)
+    result = perform_inference(image_url=uploaded_file_url)
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
@@ -114,8 +114,8 @@ def analyze():
           name=uploaded_filename, 
           url=supabase_file_url, 
           user_id=current_user, 
-          classification=result['class'], 
-          accuracy=result['confidence'], 
+          classification=result['classification'], 
+          accuracy=result['accuracy'], 
           error_rate=result['error_rate'], 
           dimensions=get_image_dimensions(result_data), 
           size=get_image_size(result_data)
@@ -154,24 +154,24 @@ def demo():
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
     uploaded_filename = os.path.basename(uploaded_file_url)
-    result = demo_inference(uploaded_file_url)
+    result = perform_inference(image_url=uploaded_file_url)
     
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
     result_data = convert_image_to_bytes(result['image'])
-    supabase_response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, result_data)
+    supabase_response = upload_file_to_bucket('lsc_files', 'demo_' + uploaded_filename, result_data)
       
     if supabase_response.status_code == HTTP_200_OK:
-      supabase_file_url = get_file_url_by_name('lsc_files', 'demo_inferred_' + uploaded_filename)
+      supabase_file_url = get_file_url_by_name('lsc_files', 'demo_' + uploaded_filename)
       
       if supabase_file_url is None:
         return jsonify({'error': 'Failed to get the url of the uploaded file. File failed to store in database.'}), HTTP_404_NOT_FOUND
       
       return jsonify({
         'url': supabase_file_url,
-        'classification': result['class'],
-        'accuracy': result['confidence'],
+        'classification': result['classification'],
+        'accuracy': result['accuracy'],
         'error_rate': result['error_rate'],
         }), HTTP_201_CREATED
     else:
