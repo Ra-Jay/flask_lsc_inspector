@@ -1,13 +1,5 @@
-import os
+from flask import current_app
 from supabase import create_client, Client
-
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_KEY')
-files = os.environ.get('SUPABASE_BUCKET_FILES')
-weights = os.environ.get('SUPABASE_BUCKET_WEIGHTS')
-profile_images = os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES')
-
-supabase: Client = create_client(url, key)
 
 def get_bucket_type(bucket):
     """
@@ -20,9 +12,9 @@ def get_bucket_type(bucket):
         `str`: The bucket type.
     """
     if bucket == 'lsc_files':
-        return files
+        return current_app.config['SUPABASE_BUCKET_FILES']
     elif bucket == 'lsc_profile_images':
-        return profile_images
+        return current_app.config['SUPABASE_BUCKET_PROFILE_IMAGES']
     else:
         return None
 
@@ -40,6 +32,8 @@ def upload_file_to_bucket(bucket, file_name, file):
         `JSON Response`: The response from the supabase server.
     """
     # Check if image extension if png or jpeg
+    supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+    
     if file_name.endswith('.png'):
         return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/png"})
     elif file_name.endswith('.jpg') or file_name.endswith('.jpeg'):
@@ -58,6 +52,7 @@ def download_file_from_bucket(bucket, file_name):
     Returns:
         `bytes`: The file data in bytes.
     """
+    supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).download(file_name)
 
 # This method is tested and working
@@ -73,6 +68,7 @@ def get_file_url_by_name(bucket, file_name):
     Returns:
         `str`: The public url of the file.
     """
+    supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).get_public_url(file_name)
 
 # This method is tested and working
@@ -86,6 +82,7 @@ def get_all_files_from_bucket(bucket):
     Returns:
         `list[dict[str, str]]`: A list of dictionaries containing the file name and url.
     """
+    supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).list()
 
 # This method is tested and working
@@ -101,4 +98,5 @@ def delete_file_by_name(bucket, file_name):
     Returns:
         `JSON Response`: The response from the supabase server.
     """
+    supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).remove(file_name)
