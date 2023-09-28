@@ -159,7 +159,7 @@ def demo():
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
-    result_data = convert_image_to_bytes(result)
+    result_data = convert_image_to_bytes(result['image'])
     supabase_response = upload_file_to_bucket('lsc_files', 'demo_inferred_' + uploaded_filename, result_data)
       
     if supabase_response.status_code == HTTP_200_OK:
