@@ -1,64 +1,10 @@
-import os
 from roboflow import Roboflow
-from PIL import Image, ImageDraw
 import requests
-from io import BytesIO
-import numpy as np
+from flask import current_app
 
-default_api_key = os.environ.get('ROBOFLOW_API_KEY')
-default_project = os.environ.get('ROBOFLOW_PROJECT')
+from src.helpers.file_utils import convert_BytesIO_to_image, convert_bytes_to_BytesIO, convert_image_to_ndarray, draw_boxes_on_image
 
-# This method is tested and working.
-def demo_inference(image_url):
-  """
-  Takes an image URL, performs object detection using a pre-trained
-  model from Roboflow, and returns the image with bounding boxes and class labels drawn on it.
-  
-  Parameters: 
-    `image_url`: The URL of the image you want to perform inference on. 
-    
-  Returns: 
-    `image`: Image object with bounding boxes and class labels drawn on it.
-    
-    `status_code`: The status code of the response. If the status code is not 200, then the image is not returned.
-  """
-  rf = Roboflow(api_key=default_api_key)
-  project = rf.workspace().project(default_project)
-  demo_model = project.version(1).model
-  
-  image_response = requests.get(image_url)
-  
-  if image_response.status_code == 200:
-    image_data = BytesIO(image_response.content)
-    image = Image.open(image_data)
-    
-    image_data = np.asarray(image)
-    
-    results = demo_model.predict(image_data, confidence=20, overlap=30).json()
-
-    draw = ImageDraw.Draw(image)
-    
-    result_details = dict()
-    result_details['image'] = image
-
-    for bounding_box in results["predictions"]:
-        x0 = bounding_box['x'] - bounding_box['width'] / 2
-        x1 = bounding_box['x'] + bounding_box['width'] / 2
-        y0 = bounding_box['y'] - bounding_box['height'] / 2
-        y1 = bounding_box['y'] + bounding_box['height'] / 2
-        
-        draw.rectangle([x0, y0, x1, y1], outline="red", width=2)
-        draw.text((x0, y0), f"{bounding_box['class']}: {bounding_box['confidence']:.2f}", fill="red")
-        result_details['class'] = bounding_box['class']
-        result_details['confidence'] = round(bounding_box['confidence'], 2)
-        result_details['error_rate'] = round(1 - bounding_box['confidence'], 2)
-    
-    return result_details
-  else:
-    return image_response.status_code
-  
- # This method is not tested and might have problems. If api_key, project_name, or version_number is not provided, then the default values will be used.
-def custom_inference(image_url, api_key=default_api_key, project_name=default_project, version_number=1):
+def perform_inference(image_url, api_key=None, project_name=None, version_number=None):
   """
   Takes an image URL, performs object detection using a custom
   model from Roboflow, and returns the image with bounding boxes and class labels drawn on it.
@@ -77,46 +23,71 @@ def custom_inference(image_url, api_key=default_api_key, project_name=default_pr
     
     `status_code`: The status code of the response. If the status code is not 200, then the image is not returned.
   """
-  rf = Roboflow(api_key=api_key)
-  project = rf.workspace().project(project_name)
-  custom_model = project.version(version_number).model
+  rf = Roboflow(api_key or current_app.config['ROBOFLOW_API_KEY'])
+  project = rf.workspace().project(project_name or  current_app.config['ROBOFLOW_PROJECT'])
+  custom_model = project.version(version_number or 1).model
   
   image_response = requests.get(image_url)
   
   if image_response.status_code == 200:
-    image_data = BytesIO(image_response.content)
-    image = Image.open(image_data)
+    image_bytes = convert_bytes_to_BytesIO(image_response.content)
+    retrieved_image = convert_BytesIO_to_image(image_bytes)
     
-    image_data = np.asarray(image)
+    results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
     
-    results = custom_model.predict(image_data, confidence=20, overlap=30).json()
-
-    draw = ImageDraw.Draw(image)
-
-    result_details = dict()
-    result_details['image'] = image
+    resulting_image = draw_boxes_on_image(retrieved_image, results["predictions"])
+    result_details = get_result_details(results)
     
-    for bounding_box in results["predictions"]:
-        x0 = bounding_box['x'] - bounding_box['width'] / 2
-        x1 = bounding_box['x'] + bounding_box['width'] / 2
-        y0 = bounding_box['y'] - bounding_box['height'] / 2
-        y1 = bounding_box['y'] + bounding_box['height'] / 2
-        
-        draw.rectangle([x0, y0, x1, y1], outline="red", width=2)
-        draw.text((x0, y0), f"{bounding_box['class']}: {bounding_box['confidence']:.2f}", fill="red")
-        result_details['class'] = bounding_box['class']
-        result_details['confidence'] = round(bounding_box['confidence'], 2)
-        result_details['error_rate'] = round(1 - bounding_box['confidence'], 2)
-    
-    return result_details
+    return {
+      'image': resulting_image,
+      'classification': result_details['classification'],
+      'accuracy': result_details['accuracy'],
+      'error_rate': result_details['error_rate']
+    }
   else:
     return image_response.status_code
   
-# Previously tested in the notebook. This method is not tested and might have problems especially in model_path.
-# See the jupyter notebook I sent regarding this model_path default post-fix value of the path.
-def deploy_model(api_key, workspace_name, project_name, dataset_version):
+def deploy_model(api_key, workspace_name, project_name, dataset_version, model_path):
+  """
+  Deploy a model to Roboflow.
+  
+  Parameters:
+    `api_key`: The API key of the user.
+    
+    `workspace_name`: The name of the workspace where the project is located.
+    
+    `project_name`: The name of the project where the dataset is located.
+    
+    `dataset_version`: The version number of the dataset.
+    
+    `model_path`: The path of the model. Might require to be "weights/best.pt".
+    
+  Returns:
+    `None`
+  """
   rf = Roboflow(api_key=api_key)
   project = rf.workspace(workspace_name).project(project_name)
   dataset = project.version(dataset_version)
   
-  project.version(dataset.version).deploy(model_type="yolov8", model_path="runs/detect/train/weights/best.pt")
+  project.version(dataset.version).deploy(model_type="yolov8", model_path=model_path)
+
+def get_result_details(results):
+  """
+  Takes a list of predictions and returns the details of the result.
+  
+  Parameters:
+    `results`: List of predictions.
+    
+  Returns:
+    `dict`: A dictionary containing the classification, confidence, and error rate.
+  """
+  
+  classification = [prediction['class'] for prediction in results['predictions']][0]
+  accuracy = round([prediction['confidence'] for prediction in results['predictions']][0], 2) * 100
+  error_rate = 100 - accuracy
+  
+  return {
+    'classification': classification,
+    'accuracy': f"{accuracy:.0f}%",
+    'error_rate': f"{error_rate:.0f}%"
+  }
