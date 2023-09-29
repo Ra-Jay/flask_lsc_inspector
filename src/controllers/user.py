@@ -1,47 +1,36 @@
 import time
-from flask_restx import Resource, Namespace 
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import validators
-from src.helpers.supabase_utils import get_file_url_by_name, upload_file_to_bucket   
+from src.helpers.file_utils import convert_file_to_bytes
+from src.helpers.supabase_utils import get_file_url_by_name, upload_file_to_bucket
+from src.helpers.user_utils import validate_user_details   
 from src.models.users import Users
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
-from ..schema.users import users_model, user_input_model
-# from flasgger.utils import swag_from 
 
 auth = Blueprint("auth", __name__, url_prefix="/api/v1/users")
 
 @auth.post('register')
-# @swag_from('../docs/user/register.yml')
 def register():
+    """
+    Register a user.
+    
+    Parameters:
+        `JSON Body`: The JSON body that contains the user attributes: `username`, `email`, and `password`.
+        
+    Returns:
+        `JSON Response`: The response from the server.
+    """
     username=request.json['username']
     email=request.json['email']
     password=request.json['password']
 
-    if len(password) < 3:
-        return jsonify({'error': 'Password is too short'}), HTTP_400_BAD_REQUEST
+    validate_user_details(username, password, email)
 
-    if len(username) < 6:
-        return jsonify({'error': 'Username is too short'}), HTTP_400_BAD_REQUEST
-
-    if not username.isalnum() or ' ' in username:
-        return jsonify({'error': 'Username should be alphanumeric and can contain no spaces'}), HTTP_400_BAD_REQUEST
-
-    if not validators.email(email):
-        return jsonify({'Error': 'Email is not valid'}), HTTP_400_BAD_REQUEST
-
-    if Users.query.filter_by(email=email).first() is not None:
-        return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
-
-    if Users.query.filter_by(username=username).first() is not None:
-        return jsonify({'error': "Username is taken"}), HTTP_409_CONFLICT
-
-    pwd_hash = generate_password_hash(password)
-
-    user=Users(username=username, password=pwd_hash, email=email)
+    user=Users(username=username, password=generate_password_hash(password), email=email)
     db.session.add(user)
     db.session.commit()
 
@@ -54,26 +43,28 @@ def register():
 
     }), HTTP_201_CREATED
 
-
 @auth.post('/login')
-# @swag_from('../docs/user/login.yml')
 def login():
+    """
+    Login a user.
+    
+    Parameters:
+        `JSON Body`: The JSON body that contains the user attributes: `email` and `password`.
+        
+    Returns:
+        `JSON Response`: The response from the server.
+    """
     email = request.json.get('email', '')
     password = request.json.get('password', '')
 
     user = Users.query.filter_by(email=email).first()
 
     if user:
-        is_pass_correct = check_password_hash(user.password, password)
-
-        if is_pass_correct:
-            refresh = create_refresh_token(identity=user.id)
-            access = create_access_token(identity=user.id)
-
+        if check_password_hash(user.password, password):
             return jsonify({
                 'user': {
-                    'refresh_token': refresh,
-                    'access_token': access,
+                    'refresh_token': create_refresh_token(identity=user.id),
+                    'access_token': create_access_token(identity=user.id),
                     'username': user.username,
                     'email': user.email
                 }
@@ -82,11 +73,10 @@ def login():
 
     return jsonify({'error': 'Wrong credentials'}), HTTP_401_UNAUTHORIZED
 
-
-
+# Only for testing purposes
 @auth.get('/user')
 @jwt_required(refresh=True)
-def user(): 
+def user():
     user_id = get_jwt_identity()
     user = Users.query.filter_by(id=user_id).first()
     return jsonify({
@@ -94,10 +84,15 @@ def user():
         'email': user.email
     }), HTTP_200_OK
 
-
 @auth.get('/token/refresh')
 @jwt_required(refresh=True)
 def refresh_users_token():
+    """
+    Refresh the user's access token.
+    
+    Returns:
+        `JSON Response`: The response from the server.
+    """
     identity = get_jwt_identity()
     access = create_access_token(identity=identity)
 
@@ -105,13 +100,11 @@ def refresh_users_token():
         'access': access
     }), HTTP_200_OK
     
-
+# Only for testing purposes
 @auth.get('/')
 def get_users():
     users = Users.query.all()
-
     data=[]
-
     for user in users:
         data.append({
             'id': user.id,
@@ -124,11 +117,20 @@ def get_users():
 
     return jsonify({'data': data}), HTTP_200_OK
 
-@auth.put('/<int:id>')
+@auth.put('/<int:id>/edit')
 @jwt_required()
-def update_user(id):
-    # current_user = get_jwt_identity()
-
+def edit(id):
+    """
+    Edit a user.
+    
+    Parameters:
+        `id`: The id of the user that you want to edit.
+        
+        `JSON Body`: The JSON body that contains the user attributes: `username`, `email`, and `password`.
+        
+    Returns:
+        `JSON Response`: The response from the server.
+    """
     user = Users.query.filter_by(id=id).first()
 
     if not user:
@@ -138,24 +140,7 @@ def update_user(id):
     email=request.json['email']
     password=request.json['password']
 
-    if len(password) < 3:
-        return jsonify({'error': 'Password is too short'}), HTTP_400_BAD_REQUEST
-
-    if len(username) < 6:
-        return jsonify({'error': 'Username is too short'}), HTTP_400_BAD_REQUEST
-
-    if not username.isalnum() or ' ' in username:
-        return jsonify({'error': 'Username should be alphanumeric and can contain no spaces'}), HTTP_400_BAD_REQUEST
-
-    if not validators.email(email):
-        return jsonify({'Error': 'Email is not valid'}), HTTP_400_BAD_REQUEST
-
-    if Users.query.filter_by(email=email).first() is not None:
-        return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
-
-    if Users.query.filter_by(username=username).first() is not None:
-        return jsonify({'error': "Username is taken"}), HTTP_409_CONFLICT
-
+    validate_user_details(username, password, email)
     pwd_hash = generate_password_hash(password)
 
     user.username = username
@@ -174,35 +159,36 @@ def update_user(id):
     }), HTTP_201_CREATED
 
 @auth.put('/<int:id>/profile-image/edit')
-@jwt_required
-def update_user_profile_image(id):
+@jwt_required()
+def edit_profile_image(id):
+    """
+    Edit a user's profile image.
+    
+    Parameters:
+        `id`: The id of the user that you want to edit.
+        
+        `profile_image`: The input type as "profile_image" in the form-data.
+        
+    Returns:
+        `JSON Response`: The response from the server.
+    """
     user = Users.query.filter_by(id=id).first()
-
     if not user:
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
 
     profile_image = request.files['profile_image']
-    
+    profile_image_data = convert_file_to_bytes(profile_image)
     profile_image_name = secure_filename(profile_image.filename)
     
-    print("===============================")
-    print("Uploading " + profile_image_name + " profile image to the supabase bucket")
-    start_time = time()
+    supabase_response = upload_file_to_bucket('lsc_profile_images', profile_image_name, profile_image_data)
     
-    response = upload_file_to_bucket('profile_images', profile_image)
-    
-    print("===============================")
-    elapsed_time = time() - start_time
-    
-    if response is HTTP_200_OK:
-        print(f"Successfully uploaded the {profile_image_name} profile image to the supabase bucket in {elapsed_time:.2f} seconds")
+    if supabase_response.status_code == HTTP_200_OK:
+        supabase_file_url = get_file_url_by_name('lsc_profile_images', profile_image_name)
         
-        url = get_file_url_by_name('profile_images', profile_image_name)
-        
-        if url is None:
+        if supabase_file_url is None:
             return jsonify({'error': 'Failed to get the url of the uploaded profile image.'}), HTTP_404_NOT_FOUND
         
-        user.profile_image = url
+        user.profile_image = supabase_file_url
 
         db.session.commit()
 
@@ -214,10 +200,10 @@ def update_user_profile_image(id):
             'updated_at': user.updated_at
         }), HTTP_201_CREATED
         
-    elif response is HTTP_400_BAD_REQUEST:
+    elif supabase_response.status_code == HTTP_400_BAD_REQUEST:
         print("The profile image " + profile_image_name + " was not found. Failed to upload to the supabase bucket")
         return jsonify({'error': "The profile image " + profile_image_name + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-    elif response is HTTP_409_CONFLICT:
+    elif supabase_response.status_code == HTTP_409_CONFLICT:
         print("The profile image " + profile_image_name + " already exists in the supabase bucket")
         return jsonify({'error': "The profile image " + profile_image_name + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
     else:
