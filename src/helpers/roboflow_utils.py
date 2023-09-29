@@ -4,7 +4,6 @@ from flask import current_app
 
 from src.helpers.file_utils import convert_BytesIO_to_image, convert_bytes_to_BytesIO, convert_image_to_ndarray, draw_boxes_on_image
 
- # This method is tested and working
 def perform_inference(image_url, api_key=None, project_name=None, version_number=None):
   """
   Takes an image URL, performs object detection using a custom

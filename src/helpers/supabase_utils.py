@@ -18,7 +18,6 @@ def get_bucket_type(bucket):
     else:
         return None
 
-# This method is tested and working
 def upload_file_to_bucket(bucket, file_name, file):
     """
     Uploads a file to a specified bucket.
@@ -39,7 +38,6 @@ def upload_file_to_bucket(bucket, file_name, file):
     elif file_name.endswith('.jpg') or file_name.endswith('.jpeg'):
         return supabase.storage.from_(bucket).upload(file_name, file, {"content-type": "image/jpeg"})
 
-# This method is tested and working
 def download_file_from_bucket(bucket, file_name):
     """
     Downloads a file from a specified bucket.
@@ -55,7 +53,6 @@ def download_file_from_bucket(bucket, file_name):
     supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).download(file_name)
 
-# This method is tested and working
 def get_file_url_by_name(bucket, file_name):
     """
     Gets the public url of a file from a specified bucket.
@@ -71,7 +68,6 @@ def get_file_url_by_name(bucket, file_name):
     supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).get_public_url(file_name)
 
-# This method is tested and working
 def get_all_files_from_bucket(bucket):
     """
     Gets all the files from a specified bucket.
@@ -85,7 +81,6 @@ def get_all_files_from_bucket(bucket):
     supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
     return supabase.storage.from_(get_bucket_type(bucket)).list()
 
-# This method is tested and working
 def delete_file_by_name(bucket, file_name):
     """
     Deletes a file from a specified bucket.
