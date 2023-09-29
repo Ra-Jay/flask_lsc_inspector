@@ -175,7 +175,6 @@ def draw_boxes_on_image(image, predictions):
     
   return image
 
-# This method is tested and working
 def save_image(bytes, file_path):
     """
     Saves an image to the local filesystem.
