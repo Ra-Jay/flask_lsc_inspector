@@ -48,14 +48,29 @@ def perform_inference(image_url, api_key=None, project_name=None, version_number
   else:
     return image_response.status_code
   
-# Previously tested in the notebook. This method is not tested and might have problems especially in model_path.
-# See the jupyter notebook I sent regarding this model_path default post-fix value of the path.
-def deploy_model(api_key, workspace_name, project_name, dataset_version):
+def deploy_model(api_key, workspace_name, project_name, dataset_version, model_path):
+  """
+  Deploy a model to Roboflow.
+  
+  Parameters:
+    `api_key`: The API key of the user.
+    
+    `workspace_name`: The name of the workspace where the project is located.
+    
+    `project_name`: The name of the project where the dataset is located.
+    
+    `dataset_version`: The version number of the dataset.
+    
+    `model_path`: The path of the model. Might require to be "weights/best.pt".
+    
+  Returns:
+    `None`
+  """
   rf = Roboflow(api_key=api_key)
   project = rf.workspace(workspace_name).project(project_name)
   dataset = project.version(dataset_version)
   
-  project.version(dataset.version).deploy(model_type="yolov8", model_path="runs/detect/train/weights/best.pt")
+  project.version(dataset.version).deploy(model_type="yolov8", model_path=model_path)
 
 def get_result_details(results):
   """
