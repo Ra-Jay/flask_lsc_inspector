@@ -11,13 +11,15 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
-# This method is tested and working
 @files.route('/upload', methods=['POST', 'GET'])
 def upload():
   """
   Handles the uploaded file to the supabase bucket. 
   The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`,
   `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  
+  Body:
+    `file`: The input type as "file" in the form-data.
   
   Returns:
     `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
@@ -61,7 +63,6 @@ def upload():
         print("Internal server error either in supabase or files controller.")
         return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
     
-# This method is tested and working
 @files.route('/analyze', methods=['POST', 'GET'])
 @jwt_required()
 def analyze():
@@ -69,6 +70,9 @@ def analyze():
   Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
   The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`, 
   `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  
+  Body:
+    `JSON Body`: The JSON body that contains the following attributes: `url`, `api_key`, `project_name`, and `version_number`.
 
   Returns:
     `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
@@ -144,9 +148,23 @@ def analyze():
       print("Internal server error either in supabase or files controller.")
       return jsonify({'error': "Internal server error either in supabase or source code"}), HTTP_500_INTERNAL_SERVER_ERROR
  
-# This method is tested and working
 @files.route('/demo', methods=['POST', 'GET'])
 def demo():
+  """
+  Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
+  
+  Body:
+    `JSON Body`: The JSON body that contains the `url` attribute only.
+    
+  Returns:
+    `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
+    
+    `400 (HTTP_400_BAD_REQUEST)`: If no file is uploaded.
+    
+    `409 (HTTP_409_CONFLICT)`: If the file already exists in the supabase bucket.
+    
+    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+  """
   if request.method == 'POST':
     uploaded_file_url = request.json['url']
     
@@ -181,6 +199,19 @@ def demo():
 @files.post('/download')
 @jwt_required()
 def download():
+  """
+  Downloads the file based on its ID and the current user's identity.
+  
+  Body:
+    `JSON Body`: The JSON body that contains the `id` and `destination` attributes.
+    
+  Returns:
+    `JSON Response`: Message with a status code of `200 (HTTP_200_OK)`.
+    
+    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+    
+    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+  """
   current_user = get_jwt_identity()
   if request.method == 'POST':
     file_id_to_download = request.json['id']
