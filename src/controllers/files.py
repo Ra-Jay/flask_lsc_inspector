@@ -31,8 +31,8 @@ def upload():
 
     supabase_response = upload_file_to_bucket(
         current_app.config['SUPABASE_BUCKET_FILES'], 
-        'uploads/' + generate_hex() + 
-        file_name, file_data
+        'uploads/' + generate_hex() + file_name, 
+        file_data
       )
     if type(supabase_response) is str:
       return jsonify({
