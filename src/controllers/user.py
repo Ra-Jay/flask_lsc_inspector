@@ -1,9 +1,6 @@
-import time
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_500_INTERNAL_SERVER_ERROR
-from flask import Blueprint, request, jsonify
-from werkzeug.utils import secure_filename
-import validators
-from src.helpers.file_utils import convert_file_to_bytes
+from flask import Blueprint, current_app, request, jsonify
+from src.helpers.file_utils import get_file, generate_hex
 from src.helpers.supabase_utils import get_file_url_by_name, upload_file_to_bucket
 from src.helpers.user_utils import check_hash, get_hash, validate_user_details   
 from src.models.users import Users
@@ -174,20 +171,17 @@ def edit_profile_image(id):
     if not user:
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
 
-    profile_image = request.files['profile_image']
-    profile_image_data = convert_file_to_bytes(profile_image)
-    profile_image_name = secure_filename(profile_image.filename)
+    image = get_file(request.files['profile_image'])
+    image_name : str = image['name']
+    image_data : bytes = image['data']
     
-    supabase_response = upload_file_to_bucket('lsc_profile_images', profile_image_name, profile_image_data)
-    
-    if supabase_response.status_code == HTTP_200_OK:
-        supabase_file_url = get_file_url_by_name('lsc_profile_images', profile_image_name)
-        
-        if supabase_file_url is None:
-            return jsonify({'error': 'Failed to get the url of the uploaded profile image.'}), HTTP_404_NOT_FOUND
-        
-        user.profile_image = supabase_file_url
-
+    supabase_response = upload_file_to_bucket(
+            current_app.config['SUPABASE_BUCKET_PROFILE_IMAGES'], 
+            generate_hex() + image_name, 
+            image_data
+        )
+    if type(supabase_response) is str:
+        user.profile_image = supabase_response
         db.session.commit()
 
         return jsonify({
@@ -197,13 +191,5 @@ def edit_profile_image(id):
             'created_at': user.created_at,
             'updated_at': user.updated_at
         }), HTTP_201_CREATED
-        
-    elif supabase_response.status_code == HTTP_400_BAD_REQUEST:
-        print("The profile image " + profile_image_name + " was not found. Failed to upload to the supabase bucket")
-        return jsonify({'error': "The profile image " + profile_image_name + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-    elif supabase_response.status_code == HTTP_409_CONFLICT:
-        print("The profile image " + profile_image_name + " already exists in the supabase bucket")
-        return jsonify({'error': "The profile image " + profile_image_name + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
     else:
-        print("Internal server error either in supabase or user controller.")
-        return jsonify({'error': "Internal server error either in supabase or profile image controller."}), HTTP_500_INTERNAL_SERVER_ERROR
+        return supabase_response
