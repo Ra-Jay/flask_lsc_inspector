@@ -147,12 +147,6 @@ def demo():
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
     uploaded_file_name = get_file_base_name(uploaded_file_url)
-    existing_file_url = get_file_url_by_name(current_app.config['SUPABASE_BUCKET_FILES'], uploaded_file_name)
-    if existing_file_url is not None:
-      return jsonify({
-        'error': 'File already exists.',
-        'url': existing_file_url
-        }), HTTP_409_CONFLICT
       
     result = perform_inference(image_url=uploaded_file_url)
     if result is None:
