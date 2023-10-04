@@ -2,11 +2,10 @@ import time
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash, generate_password_hash
 import validators
 from src.helpers.file_utils import convert_file_to_bytes
 from src.helpers.supabase_utils import get_file_url_by_name, upload_file_to_bucket
-from src.helpers.user_utils import validate_user_details   
+from src.helpers.user_utils import check_hash, get_hash, validate_user_details   
 from src.models.users import Users
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
@@ -30,7 +29,7 @@ def register():
 
     validate_user_details(username, password, email)
 
-    user=Users(username=username, password=generate_password_hash(password), email=email)
+    user=Users(username=username, password=get_hash(password), email=email)
     db.session.add(user)
     db.session.commit()
 
@@ -60,7 +59,7 @@ def login():
     user = Users.query.filter_by(email=email).first()
 
     if user:
-        if check_password_hash(user.password, password):
+        if check_hash(user.password, password):
             return jsonify({
                 'user': {
                     'refresh_token': create_refresh_token(identity=user.id),
@@ -141,10 +140,9 @@ def edit(id):
     password=request.json['password']
 
     validate_user_details(username, password, email)
-    pwd_hash = generate_password_hash(password)
 
     user.username = username
-    user.password = pwd_hash
+    user.password = get_hash(password)
     user.email = email
 
     db.session.commit()
