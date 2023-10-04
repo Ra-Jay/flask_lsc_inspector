@@ -1,8 +1,30 @@
+from os import path, urandom
 from io import BytesIO
 import numpy as np
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from PIL import Image, ImageDraw, ImageFont
+
+def generate_hex():
+    """
+    Generate a random hex.
+    
+    Returns:
+        `str`: A random hex.
+    """
+    return urandom(4).hex()
+
+def get_file_base_name(file_name : str):
+    """
+    Get the base name of a file.
+    
+    Parameters:
+        `file_name`: The file name that the user want to get the base name.
+        
+    Returns:
+        `str`: The base name of the file.
+    """
+    return path.basename(file_name)
 
 def get_file(file_storage : FileStorage):
     """
