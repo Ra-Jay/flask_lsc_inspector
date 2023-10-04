@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from src.constants.status_codes import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
 from src.models.users import Users
 
-def get_hash(password):
+def get_hash(password : str):
   """
   Generates a hash from a password.
   
@@ -17,7 +17,7 @@ def get_hash(password):
   """
   return generate_password_hash(password)
 
-def check_hash(password, hash):
+def check_hash(password : str, hash : str):
   """
   Checks if the password matches the hash.
   
@@ -31,7 +31,7 @@ def check_hash(password, hash):
   """
   return check_password_hash(password, hash)
 
-def validate_user_details(username, password, email):
+def validate_user_details(username : str, password : str, email : str):
   """
   Validates the user details.
   

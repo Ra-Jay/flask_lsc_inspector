@@ -1,7 +1,7 @@
 from flask import current_app, jsonify
 from supabase import create_client, Client
 
-def get_bucket_type(bucket):
+def get_bucket_type(bucket : str):
     """
     Gets the bucket type from the bucket name.
     
@@ -18,7 +18,7 @@ def get_bucket_type(bucket):
     else:
         return None
 
-def upload_file_to_bucket(bucket, name, data):
+def upload_file_to_bucket(bucket : str, name : str, data : str):
     """
     Uploads a file to a specified bucket.
     
@@ -51,7 +51,7 @@ def upload_file_to_bucket(bucket, name, data):
         }), e.args[0]['statusCode']
     
 
-def download_file_from_bucket(bucket, name):
+def download_file_from_bucket(bucket : str, name : str):
     """
     Downloads a file from a specified bucket.
     
@@ -74,7 +74,7 @@ def download_file_from_bucket(bucket, name):
             'message': 'File download failed.'
         }), e.args[0]['statusCode']
 
-def get_file_url_by_name(bucket, name):
+def get_file_url_by_name(bucket : str, name : str):
     """
     Gets the public url of a file from a specified bucket.
     
@@ -97,7 +97,7 @@ def get_file_url_by_name(bucket, name):
             'message': 'File URL retrieval failed.'
         }), e.args[0]['statusCode']
     
-def get_all_files_from_bucket(bucket):
+def get_all_files_from_bucket(bucket : str):
     """
     Gets all the files from a specified bucket.
     
@@ -118,7 +118,7 @@ def get_all_files_from_bucket(bucket):
             'message': 'Files retrieval failed.'
         }), e.args[0]['statusCode']
 
-def delete_file_by_name(bucket, name):
+def delete_file_by_name(bucket : str, name : str):
     """
     Deletes a file from a specified bucket.
     
