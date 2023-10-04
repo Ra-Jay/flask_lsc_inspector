@@ -29,7 +29,7 @@ def check_hash(password, hash):
   Returns:
     `bool`: True if the password matches the hash, otherwise False.
   """
-  return check_password_hash(hash, password)
+  return check_password_hash(password, hash)
 
 def validate_user_details(username, password, email):
   """
