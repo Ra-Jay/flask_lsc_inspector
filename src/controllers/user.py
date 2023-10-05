@@ -62,7 +62,9 @@ def login():
                     'refresh_token': create_refresh_token(identity=user.id),
                     'access_token': create_access_token(identity=user.id),
                     'username': user.username,
-                    'email': user.email
+                    'email': user.email,
+                    'profile_image': user.profile_image,
+                    'id': user.id
                 }
 
             }), HTTP_200_OK
