@@ -72,10 +72,12 @@ def login():
 
             return jsonify({
                 'user': {
+                    'id': user.id,
                     'refresh_token': refresh,
                     'access_token': access,
                     'username': user.username,
-                    'email': user.email
+                    'email': user.email,
+                    'profile_image': user.profile_image
                 }
 
             }), HTTP_200_OK
