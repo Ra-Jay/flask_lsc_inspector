@@ -102,12 +102,15 @@ def analyze():
     db.session.add(file)
     db.session.commit()
     
+    new_file_name = generate_hex() + uploaded_file_name
+    
     supabase_response = upload_file_to_bucket(
         current_app.config['SUPABASE_BUCKET_FILES'], 
-        'main/' + generate_hex() + uploaded_file_name, 
+        'main/' + new_file_name,
         result_data
       )
     if type(supabase_response) is str:
+      file.name = new_file_name
       file.url = supabase_response
       db.session.commit()
       
@@ -192,9 +195,9 @@ def download():
     if not file:
       return jsonify({'error': 'File not found.'}), HTTP_404_NOT_FOUND
     
-    file_data = download_file_from_bucket(current_app.config['SUPABASE_BUCKET_FILES'], file.name)
+    file_data = download_file_from_bucket(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
     
-    if file_data is None:
+    if type(file_data) is tuple:
       return jsonify({'error': 'Failed to download the file.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
     with open(destination, 'wb') as f:
