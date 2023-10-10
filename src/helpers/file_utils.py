@@ -1,16 +1,55 @@
+from os import path, urandom
 from io import BytesIO
 import numpy as np
+from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 from PIL import Image, ImageDraw, ImageFont
 
-def get_image_dimensions(file_data):
+def generate_hex():
     """
-    Get the dimensions of an image.
+    Generate a random hex.
+    
+    Returns:
+        `str`: A random hex.
+    """
+    return urandom(4).hex()
+
+def get_file_base_name(file_name : str):
+    """
+    Get the base name of a file.
     
     Parameters:
-        `file`: The file that the user want to get the dimensions.
+        `file_name`: The file name that the user want to get the base name.
         
     Returns:
-        `tuple`: The dimensions of the image.
+        `str`: The base name of the file.
+    """
+    return path.basename(file_name)
+
+def get_file(file_storage : FileStorage):
+    """
+    Get the file from the request.
+    
+    Parameters:
+        `file_storage`: The file storage that the user want to get.
+        
+    Returns:
+        `dict`: The file name and data.
+    """
+    return {
+        'name': secure_filename(file_storage.filename),
+        'data': convert_file_to_bytes(file_storage)
+    }
+    
+def get_image_dimensions(file_data : bytes):
+    """
+    Get the dimensions of an image.
+
+    Parameters:
+        `file_data`: The file data that the user want to get the dimensions.
+         
+    Returns:
+        `str`: The dimensions of the image.
     """
     try:
         image = convert_bytes_to_image(file_data)
@@ -20,18 +59,17 @@ def get_image_dimensions(file_data):
         print(f"Error while getting image dimensions: {e}")
         return None
 
-def get_image_size(file_data):
+def get_image_size(file_data : bytes):
     """
     Get the size of an image.
     
     Parameters:
-        `file`: The file that the user want to get the size.
-        
+       `file_data`: The file data that the user want to get the size.
+       
     Returns:
-        `int`: The size of the image.
+        `str`: The size of the image.
     """
     try:
-        # Get image size in bytes
         file_size = len(file_data)
         size_in_kb = file_size / 1024
         return f"{size_in_kb:.2f} kB"
@@ -39,7 +77,7 @@ def get_image_size(file_data):
         print(f"Error while getting image size: {e}")
         return None
     
-def convert_BytesIO_to_image(bytes_io):
+def convert_BytesIO_to_image(bytes_io : BytesIO):
     """
     Convert BytesIO to image.
     
@@ -47,7 +85,7 @@ def convert_BytesIO_to_image(bytes_io):
         `bytes_io`: The BytesIO that the user want to convert.
         
     Returns:
-        `image`: The BytesIO as image.
+        `image`: The BytesIO opened as image.
     """
     try:
         return Image.open(bytes_io)
@@ -55,7 +93,7 @@ def convert_BytesIO_to_image(bytes_io):
         print(f"Error while opening image: {e}")
         return None
     
-def convert_bytes_to_BytesIO(bytes):
+def convert_bytes_to_BytesIO(bytes : bytes):
     """
     Convert bytes to BytesIO.
     
@@ -63,7 +101,7 @@ def convert_bytes_to_BytesIO(bytes):
         `bytes`: The bytes that the user want to convert.
         
     Returns:
-        `BytesIO`: The bytes as BytesIO.
+        `BytesIO`: The bytes casted as BytesIO.
     """
     try:
         return BytesIO(bytes)
@@ -71,7 +109,7 @@ def convert_bytes_to_BytesIO(bytes):
         print(f"Error while getting image by bytes: {e}")
         return None
 
-def convert_file_to_bytes(file):
+def convert_file_to_bytes(file : FileStorage):
     """
     Convert a file to bytes.
     
@@ -79,15 +117,16 @@ def convert_file_to_bytes(file):
         `file`: The file that the user want to convert.
         
     Returns:
-        `bytes`: The file as bytes.
+        `bytes`: The file read as bytes.
     """
     try:
-        return file.read()
+        file_bytes : bytes = file.read()
+        return file_bytes
     except Exception as e:
         print(f"Error while converting file to bytes: {e}")
         return None  
     
-def convert_image_to_ndarray(image):
+def convert_image_to_ndarray(image : Image):
     """
     Convert an image to ndarray.
     
@@ -103,7 +142,7 @@ def convert_image_to_ndarray(image):
         print(f"Error while converting image to ndarray: {e}")
         return None
 
-def convert_image_to_bytes(image):
+def convert_image_to_bytes(image : Image):
     """
     Convert an image to bytes.
     
@@ -122,7 +161,7 @@ def convert_image_to_bytes(image):
         print(f"Error while converting image to bytes: {e}")
         return None
 
-def convert_bytes_to_image(bytes):
+def convert_bytes_to_image(bytes : bytes):
     """
     Convert bytes to image.
     
@@ -130,7 +169,7 @@ def convert_bytes_to_image(bytes):
         `bytes`: The bytes that the user want to convert.
         
     Returns:
-        `image`: The bytes as image.
+        `image`: The bytes casted as BytesIO to be opened as image.
     """
     try:
         image = Image.open(BytesIO(bytes))
@@ -139,7 +178,7 @@ def convert_bytes_to_image(bytes):
         print(f"Error while converting bytes to image: {e}")
         return None
     
-def draw_boxes_on_image(image, predictions):
+def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
   """
   Takes an image and a list of predictions, and returns the image with bounding boxes and class labels drawn on it.
   
@@ -175,7 +214,7 @@ def draw_boxes_on_image(image, predictions):
     
   return image
 
-def save_image(bytes, file_path):
+def save_image(bytes : bytes, file_path : str):
     """
     Saves an image to the local filesystem.
     

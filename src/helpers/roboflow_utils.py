@@ -4,7 +4,7 @@ from flask import current_app
 
 from src.helpers.file_utils import convert_BytesIO_to_image, convert_bytes_to_BytesIO, convert_image_to_ndarray, draw_boxes_on_image
 
-def perform_inference(image_url, api_key=None, project_name=None, version_number=None):
+def perform_inference(image_url : str, api_key=None, project_name=None, version_number=None):
   """
   Takes an image URL, performs object detection using a custom
   model from Roboflow, and returns the image with bounding boxes and class labels drawn on it.
@@ -47,7 +47,7 @@ def perform_inference(image_url, api_key=None, project_name=None, version_number
   else:
     return image_response.status_code
   
-def deploy_model(api_key, workspace_name, project_name, dataset_version, model_path):
+def deploy_model(api_key : str, workspace_name : str, project_name : str, dataset_version : int, model_path : str):
   """
   Deploy a model to Roboflow.
   
@@ -71,7 +71,7 @@ def deploy_model(api_key, workspace_name, project_name, dataset_version, model_p
   
   project.version(dataset.version).deploy(model_type="yolov8", model_path=model_path)
 
-def get_result_details(results):
+def get_result_details(results : dict[str, list]):
   """
   Takes a list of predictions and returns the details of the result.
   
