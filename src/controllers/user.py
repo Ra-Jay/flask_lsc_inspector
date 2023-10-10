@@ -136,12 +136,13 @@ def edit(id):
 
     username=request.json['username']
     email=request.json['email']
-    password=request.json['password']
+    # password=request.json['password']
 
-    validate_user_details(username, password, email)
-
+    validate_user_details(username, user.password, email)
+    print("username: ------------------------", username)
+    print("email: ------------------------", email)
     user.username = username
-    user.password = get_hash(password)
+    # user.password = get_hash(password)
     user.email = email
 
     db.session.commit()
