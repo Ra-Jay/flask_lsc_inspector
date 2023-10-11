@@ -67,6 +67,9 @@ def analyze():
   current_user = get_jwt_identity()
   if request.method == 'POST':
     uploaded_file_url = request.json['url']
+    project_name = request.json['project_name']
+    api_key = request.json['api_key']
+    version = request.json['version']
     # Add this if the implmentation of the user having previously deployed a model to roboflow is ready.
     # api_key = request.json['api_key']
     # project_name = request.json['project_name']
@@ -84,7 +87,7 @@ def analyze():
         }), HTTP_409_CONFLICT
     
     # Add the api_key, project_name, and version_number if the implmentation of the user having previously deployed a model to roboflow is ready.
-    result = perform_inference(image_url=uploaded_file_url)
+    result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
@@ -307,7 +310,7 @@ def delete_by_id(id):
 @jwt_required()
 def delete_all():
   """
-  Deletes the file object based on its ID and the current user's identity.
+  Deletes all the files of current user's identity.
 
   Parameters:
     `id`: The unique identifier of the file that the user wants to delete.

@@ -1,12 +1,8 @@
 import os
-import time
-from flask_restx import Resource, Namespace 
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash, generate_password_hash
-from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, get_all_files_from_bucket, delete_file_by_name
-import validators   
+# from werkzeug.security import check_api_key_hash, generate_api_key_hash
 from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -15,11 +11,10 @@ weights = Blueprint("weights", __name__, url_prefix="/api/v1/weights")
 
 WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights')
 
-@weights.route('/upload', methods=['POST', 'GET'])
+@weights.post('/')
 @jwt_required()
-def upload():
+def post():
     """
-    Handles the uploaded weights file to the supabase bucket.
     The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
 
     Returns:
@@ -27,61 +22,34 @@ def upload():
         
         `HTTP_400_BAD_REQUEST`: If the weights file is not found.
         
-        `HTTP_409_CONFLICT`: If the weights file already exists in the supabase bucket.
+        `HTTP_409_CONFLICT`: If the api_key already exists.
         
-        `HTTP_500_INTERNAL_SERVER_ERROR`: If there is an internal server error either in supabase or source code.
+        `HTTP_500_INTERNAL_SERVER_ERROR`: If there is an internal server error.
     """    
     current_user = get_jwt_identity()
 
     if request.method == 'POST':
-        if 'file' not in request.files:
-            return jsonify({'error': 'No weights file found.'}), HTTP_400_BAD_REQUEST
-        
-        uploaded_weights = request.files['weights']
-        
-        uploaded_weights_name = secure_filename(uploaded_weights.filename)
-        
-        print("===============================")
-        print("Uploading " + uploaded_weights_name + " weights to the supabase bucket")
-        start_time = time()
-        
-        response = upload_file_to_bucket('weights', uploaded_weights)
-        
-        print("===============================")
-        elapsed_time = time() - start_time
-        
-        if response is HTTP_200_OK:
-            print(f"Successfully uploaded the {uploaded_weights_name} weights to the supabase bucket in {elapsed_time:.2f} seconds")
-            
-            url = get_file_url_by_name(uploaded_weights_name)
-            
-            if url is None:
-                return jsonify({'error': 'Failed to get the url of the uploaded weights.'}), HTTP_404_NOT_FOUND
-        
-            session['uploaded_custom_weights_url'] = url
-            
-            weight = Weights(name=uploaded_weights_name, url=url, user_id=current_user)
-            db.session.add(weight)
-            db.session.commit()
+        project_name = request.json.get('project_name', '')
+        api_key = request.json.get('api_key', '')
+        version = request.json.get('version', '')
 
-            return jsonify({
-                'id': weight.id,
-                'name': weight.name,
-                'url': weight.url,
-                'created_at': weight.created_at,
-                'udpated_at': weight.updated_at
-            }), HTTP_201_CREATED
-            
-        elif response is HTTP_400_BAD_REQUEST:
-            print("The weights " + uploaded_weights_name + " was not found. Failed to upload to the supabase bucket")
-            return jsonify({'error': "The weights " + uploaded_weights_name + " was not found. Failed upload to the supabase bucket"}), HTTP_400_BAD_REQUEST
-        elif response is HTTP_409_CONFLICT:
-            print("The weights " + uploaded_weights_name + " already exists in the supabase bucket")
-            return jsonify({'error': "The weights " + uploaded_weights_name + " already exists in the supabase bucket"}), HTTP_409_CONFLICT
-        else:
-            print("Internal server error either in supabase or weights controller.")
-            return jsonify({'error': "Internal server error either in supabase or weights controller."}), HTTP_500_INTERNAL_SERVER_ERROR
+        if Weights.query.filter_by(api_key=api_key).first():
+            return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
 
+        weight = Weights( user_id=current_user, project_name=project_name, api_key=api_key, version=version)
+        db.session.add(weight)
+        db.session.commit()
+
+        return jsonify({
+            'id': weight.id,
+            'user_id':current_user, 
+            'project_name': weight.project_name,
+            'api_key': weight.api_key,
+            'version': weight.version,
+            'created_at': weight.created_at,
+            'udpated_at': weight.updated_at
+        }), HTTP_201_CREATED
+            
 @weights.get('/')
 @jwt_required()
 def get_all():
@@ -104,11 +72,13 @@ def get_all():
     data = []
     for weight in weights:
         data.append({
-            'id': weight.id,
-            'name': weight.name,
-            'url': weight.url,
+           'id': weight.id,
+            'user_id':current_user, 
+            'project_name': weight.project_name,
+            'api_key': weight.api_key,
+            'version': weight.version,
             'created_at': weight.created_at,
-            'updated_at': weight.updated_at
+            'udpated_at': weight.updated_at
         })
 
     return jsonify({'data': data}), HTTP_200_OK
@@ -136,15 +106,17 @@ def get_by_id(id):
         return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
 
     return jsonify({
-            'id': weight.id,
-            'name': weight.name,
-            'url': weight.url,
+          'id': weight.id,
+            'user_id':current_user, 
+            'project_name': weight.project_name,
+            'api_key': weight.api_key,
+            'version': weight.version,
             'created_at': weight.created_at,
-            'updated_at': weight.updated_at
+            'udpated_at': weight.updated_at
         }), HTTP_200_OK
 
 
-@weights.delete('/<int:id>/delete')
+@weights.delete('/<int:id>')
 @jwt_required()
 def delete_by_id(id):
     """
@@ -164,8 +136,6 @@ def delete_by_id(id):
 
     if not weight:
         return jsonify({'message': 'Weights not found'}), HTTP_404_NOT_FOUND
-    
-    delete_file_by_name('weights', weight.name)
 
     db.session.delete(weight)
     db.session.commit()

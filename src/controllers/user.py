@@ -6,6 +6,7 @@ from src.helpers.user_utils import check_hash, get_hash, validate_user_details
 from src.models.users import Users
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
+import os
 
 auth = Blueprint("auth", __name__, url_prefix="/api/v1/users")
 
@@ -64,7 +65,10 @@ def login():
                     'username': user.username,
                     'email': user.email,
                     'profile_image': user.profile_image,
-                    'id': user.id
+                    'id': user.id,
+                    'project_name': None,
+                    'api_key': None,
+                    'version': None
                 }
 
             }), HTTP_200_OK
