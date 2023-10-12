@@ -1,6 +1,6 @@
 from roboflow import Roboflow
 import requests
-from flask import current_app
+from flask import current_app, jsonify
 
 from src.helpers.file_utils import convert_BytesIO_to_image, convert_bytes_to_BytesIO, convert_image_to_ndarray, draw_boxes_on_image
 
@@ -47,7 +47,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
   else:
     return image_response.status_code
   
-def deploy_model(api_key : str, workspace_name : str, project_name : str, dataset_version : int, model_path : str):
+def deploy_model(api_key : str, workspace_name : str, project_name : str, dataset_version : int, model_type : str, model_path : str):
   """
   Deploy a model to Roboflow.
   
@@ -65,11 +65,18 @@ def deploy_model(api_key : str, workspace_name : str, project_name : str, datase
   Returns:
     `None`
   """
-  rf = Roboflow(api_key=api_key)
-  project = rf.workspace(workspace_name).project(project_name)
-  dataset = project.version(dataset_version)
-  
-  project.version(dataset.version).deploy(model_type="yolov8", model_path=model_path)
+  try:
+      rf = Roboflow(api_key=api_key)
+      project = rf.workspace(workspace_name).project(project_name)
+      dataset = project.version(dataset_version)
+      
+      project.version(dataset.version).deploy(model_type=model_type, model_path=model_path)
+      return 201
+  except Exception as e:
+      return jsonify({
+          'error': e.args[0]['error'] + '.',
+          'message': 'Model deployment failed.'
+      }), e.args[0]['statusCode']
 
 def get_result_details(results : dict[str, list]):
   """
