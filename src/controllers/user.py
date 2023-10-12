@@ -141,7 +141,6 @@ def edit(id):
 
     username=request.json['username']
     email=request.json['email']
-    # password=request.json['password']
 
     validate_user_details(username, user.password, email)
     print("username: ------------------------", username)
@@ -204,3 +203,41 @@ def edit_profile_image(id):
         }), HTTP_201_CREATED
     else:
         return supabase_response
+    
+@auth.put('/<uuid(strict=False):id>/password')
+@jwt_required()
+def update_password(id):
+    """
+    Edit a user.
+    
+    Parameters:
+        `id`: The id of the user that you want to edit.
+        
+        `JSON Body`: The JSON body that contains the user attributes: `username`, `email`, and `password`.
+        
+    Returns:
+        `JSON Response`: The response from the server.
+    """
+    old_password= request.json['old_password']
+    new_password= request.json['new_password']
+
+    user = Users.query.filter_by(id=str(id)).first()
+
+    if not user:
+        return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
+   
+    if check_hash(user.password, old_password):
+        user.passw0rd = get_hash(new_password)
+    else :
+          return jsonify({'message': 'Password doens\'t match.'}), HTTP_404_NOT_FOUND
+
+    db.session.commit()
+
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'password': user.password,
+        'email': user.email,
+        'created_at': user.created_at,
+        'updated_at': user.updated_at
+    }), HTTP_201_CREATED
