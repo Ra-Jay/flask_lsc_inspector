@@ -6,6 +6,7 @@ from src.helpers.roboflow_utils import perform_inference
 from src.models.files import Files
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
+import uuid
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
@@ -94,10 +95,11 @@ def analyze():
     result_data = convert_image_to_bytes(result['image'])
     
     file = Files(
+        id=uuid.uuid4(),
         name=uploaded_file_name, 
         user_id=current_user, 
         classification=result['classification'], 
-        accuracy=result['accuracy'], 
+        accuracy=result['accuracy'],  
         error_rate=result['error_rate'], 
         dimensions=get_image_dimensions(result_data), 
         size=get_image_size(result_data),
@@ -245,7 +247,7 @@ def get_all():
   
   return jsonify({'data': data}), HTTP_200_OK
 
-@files.get('/<int:id>')
+@files.get('/<uuid(strict=False):id>')
 @jwt_required()
 def get_by_id(id):
   """
@@ -262,7 +264,7 @@ def get_by_id(id):
     `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
   """
   current_user = get_jwt_identity()
-  file = Files.query.filter_by(user_id=current_user, id=id).first()
+  file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
@@ -279,7 +281,7 @@ def get_by_id(id):
     'updated_at': file.updated_at
     }), HTTP_200_OK
 
-@files.delete('/<int:id>')
+@files.delete('/<uuid(strict=False):id>')
 @jwt_required()
 def delete_by_id(id):
   """
@@ -294,7 +296,7 @@ def delete_by_id(id):
     `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
   """
   current_user = get_jwt_identity()
-  file = Files.query.filter_by(user_id=current_user, id=id).first()
+  file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   print("file ---------------: ", file)

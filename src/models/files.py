@@ -3,9 +3,9 @@ from datetime import datetime
 
 
 class Files(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id=db.Column(db.Integer, db.ForeignKey('users.id'))
-    weight_id=db.Column(db.Integer, db.ForeignKey('weights.id'))
+    id = db.Column(db.String(50), primary_key=True)
+    user_id=db.Column(db.String(50), db.ForeignKey('users.id'))
+    weight_id=db.Column(db.String(50), db.ForeignKey('weights.id'))
     name = db.Column(db.String(50), unique=False, nullable=False)
     dimensions=db.Column(db.String(50), nullable=True)
     size=db.Column(db.String(50), nullable=True)

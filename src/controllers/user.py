@@ -7,6 +7,7 @@ from src.models.users import Users
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 import os
+import uuid
 
 auth = Blueprint("auth", __name__, url_prefix="/api/v1/users")
 
@@ -27,7 +28,7 @@ def register():
 
     validate_user_details(username, password, email)
 
-    user=Users(username=username, password=get_hash(password), email=email)
+    user=Users(id = uuid.uuid4(), username=username, password=get_hash(password), email=email)
     db.session.add(user)
     db.session.commit()
 
@@ -119,7 +120,7 @@ def get_users():
 
     return jsonify({'data': data}), HTTP_200_OK
 
-@auth.put('/<int:id>/edit')
+@auth.put('/<uuid(strict=False):id>/edit')
 @jwt_required()
 def edit(id):
     """
@@ -133,7 +134,7 @@ def edit(id):
     Returns:
         `JSON Response`: The response from the server.
     """
-    user = Users.query.filter_by(id=id).first()
+    user = Users.query.filter_by(id=str(id)).first()
 
     if not user:
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
@@ -160,7 +161,7 @@ def edit(id):
         'updated_at': user.updated_at
     }), HTTP_201_CREATED
 
-@auth.put('/<int:id>/profile-image/edit')
+@auth.put('/<uuid(strict=False):id>/profile-image/edit')
 @jwt_required()
 def edit_profile_image(id):
     """
@@ -174,7 +175,10 @@ def edit_profile_image(id):
     Returns:
         `JSON Response`: The response from the server.
     """
-    user = Users.query.filter_by(id=id).first()
+    print("id -----------------------:", type(str(id)))
+    user = Users.query.filter_by(id=str(id)).first()
+    print("id -----------------------:", user)
+
     if not user:
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
 

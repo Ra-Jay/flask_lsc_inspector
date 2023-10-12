@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
+import uuid
 
 weights = Blueprint("weights", __name__, url_prefix="/api/v1/weights")
 
@@ -36,7 +37,7 @@ def post():
         if Weights.query.filter_by(api_key=api_key).first():
             return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
 
-        weight = Weights( user_id=current_user, project_name=project_name, api_key=api_key, version=version)
+        weight = Weights(id=uuid.uuid4(), user_id=current_user, project_name=project_name, api_key=api_key, version=version)
         db.session.add(weight)
         db.session.commit()
 
@@ -83,7 +84,7 @@ def get_all():
 
     return jsonify({'data': data}), HTTP_200_OK
 
-@weights.get('/<int:id>')
+@weights.get('/<uuid(strict=False):id>')
 @jwt_required()
 def get_by_id(id):
     """
@@ -100,13 +101,13 @@ def get_by_id(id):
     """    
     current_user = get_jwt_identity()
 
-    weight = Weights.query.filter_by(user_id=current_user, id=id).first()
+    weight = Weights.query.filter_by(user_id=current_user, id=str(id)).first()
 
     if not weights:
         return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
 
     return jsonify({
-          'id': weight.id,
+            'id': weight.id,
             'user_id':current_user, 
             'project_name': weight.project_name,
             'api_key': weight.api_key,
@@ -116,7 +117,7 @@ def get_by_id(id):
         }), HTTP_200_OK
 
 
-@weights.delete('/<int:id>')
+@weights.delete('/<uuid(strict=False):id>')
 @jwt_required()
 def delete_by_id(id):
     """
@@ -132,7 +133,7 @@ def delete_by_id(id):
     """    
     current_user = get_jwt_identity()
 
-    weight = Weights.query.filter_by(user_id=current_user, id=id).first()
+    weight = Weights.query.filter_by(user_id=current_user, id=str(id)).first()
 
     if not weight:
         return jsonify({'message': 'Weights not found'}), HTTP_404_NOT_FOUND

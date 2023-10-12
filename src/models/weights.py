@@ -3,8 +3,8 @@ from datetime import datetime
 
 
 class Weights(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id=db.Column(db.Integer, db.ForeignKey('users.id'))
+    id = db.Column(db.String(50), primary_key=True)
+    user_id=db.Column(db.String(50), db.ForeignKey('users.id'))
     project_name = db.Column(db.String(50), nullable=False)
     api_key=db.Column(db.String(50),unique=True, nullable=False)
     version=db.Column(db.Integer, nullable=True)
