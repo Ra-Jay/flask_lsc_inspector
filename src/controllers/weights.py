@@ -2,6 +2,7 @@ import os
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
+from src.helpers.roboflow_utils import deploy_model
 # from werkzeug.security import check_api_key_hash, generate_api_key_hash
 from src.models.weights import Weights
 from ..extensions import db
@@ -31,25 +32,34 @@ def post():
 
     if request.method == 'POST':
         project_name = request.json.get('project_name', '')
+        workspace = request.json.get('workspace', '')
         api_key = request.json.get('api_key', '')
         version = request.json.get('version', '')
+        model_type = request.json.get('model_type', '')
+        model_path = request.json.get('model_path', '') #FileSave in the frontend
 
         if Weights.query.filter_by(api_key=api_key).first():
             return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
 
-        weight = Weights(id=uuid.uuid4(), user_id=current_user, project_name=project_name, api_key=api_key, version=version)
-        db.session.add(weight)
-        db.session.commit()
-
-        return jsonify({
-            'id': weight.id,
-            'user_id':current_user, 
-            'project_name': weight.project_name,
-            'api_key': weight.api_key,
-            'version': weight.version,
-            'created_at': weight.created_at,
-            'udpated_at': weight.updated_at
-        }), HTTP_201_CREATED
+        weight = Weights(id=uuid.uuid4(), user_id=current_user, project_name=project_name, api_key=api_key, version=version, model_type=model_type)
+        
+        roboflow_response = deploy_model(api_key, workspace, project_name, version, model_type, model_path)
+        if roboflow_response == 201:
+            db.session.add(weight)
+            db.session.commit()
+            
+            return jsonify({
+                'id': weight.id,
+                'user_id':current_user, 
+                'project_name': weight.project_name,
+                'api_key': weight.api_key,
+                'version': weight.version,
+                'model_type': weight.model_type, # "yolov5", "yolov7-seg", and "yolov8" only
+                'created_at': weight.created_at,
+                'udpated_at': weight.updated_at
+            }), HTTP_201_CREATED
+        else:
+            return roboflow_response
             
 @weights.get('/')
 @jwt_required()

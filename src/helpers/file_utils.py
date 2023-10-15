@@ -203,13 +203,14 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
     fontsize = 1
     img_fraction = 0.20
     
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf", fontsize)
+    # Remove specific path of font after configuring
+    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
     while font.getsize(text)[0] < img_fraction*image.size[0]:
       fontsize += 1
-      font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf", fontsize)
+      font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
 
     fontsize -= 1
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf", fontsize)
+    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
     draw.text((x0, y0), text, fill="green" if bounding_box['class'] == "Good" else "red", spacing=5, font=font)
     
   return image
