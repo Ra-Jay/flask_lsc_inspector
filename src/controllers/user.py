@@ -4,6 +4,7 @@ from src.helpers.file_utils import get_file, generate_hex
 from src.helpers.supabase_utils import get_file_url_by_name, upload_file_to_bucket
 from src.helpers.user_utils import check_hash, get_hash, validate_user_details   
 from src.models.users import Users
+from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 import os
@@ -58,6 +59,18 @@ def login():
     user = Users.query.filter_by(email=email).first()
 
     if user:
+        user_weights = Weights.query.filter_by(user_id=user.id).all()
+            
+        weights = []
+        for weight in user_weights:
+            weights.append({
+                'id': weight.id,
+                'user_id':user.id, 
+                'project_name': weight.project_name,
+                'api_key': weight.api_key,
+                'version': weight.version,
+                'model_type': weight.model_type,
+            })
         if check_hash(user.password, password):
             return jsonify({
                 'user': {
@@ -67,10 +80,7 @@ def login():
                     'email': user.email,
                     'profile_image': user.profile_image,
                     'id': user.id,
-                    'project_name': None,
-                    'api_key': None,
-                    'version': None
-                }
+                },'weights': weights
 
             }), HTTP_200_OK
 
@@ -143,10 +153,7 @@ def edit(id):
     email=request.json['email']
 
     validate_user_details(username, user.password, email)
-    print("username: ------------------------", username)
-    print("email: ------------------------", email)
     user.username = username
-    # user.password = get_hash(password)
     user.email = email
 
     db.session.commit()

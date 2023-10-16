@@ -75,7 +75,7 @@ def analyze():
     # api_key = request.json['api_key']
     # project_name = request.json['project_name']
     # version_number = request.json['version_number']
-    
+    print("--=-=-=-=-=-=-=-==-=-=-", api_key)
     if uploaded_file_url is None:
       return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
     
@@ -89,6 +89,7 @@ def analyze():
     
     # Add the api_key, project_name, and version_number if the implmentation of the user having previously deployed a model to roboflow is ready.
     result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
+    
     if result is None:
       return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
     
@@ -299,7 +300,6 @@ def delete_by_id(id):
   file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
-  print("file ---------------: ", file)
   
   # delete_file_by_name('files', file.name)
   

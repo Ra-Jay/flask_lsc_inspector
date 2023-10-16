@@ -41,7 +41,7 @@ def post():
         if Weights.query.filter_by(api_key=api_key).first():
             return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
 
-        weight = Weights(id=uuid.uuid4(), user_id=current_user, project_name=project_name, api_key=api_key, version=version, model_type=model_type)
+        weight = Weights(id=uuid.uuid4(), user_id=current_user, workspace=workspace, project_name=project_name, api_key=api_key, version=version, model_type=model_type)
         
         roboflow_response = deploy_model(api_key, workspace, project_name, version, model_type, model_path)
         if roboflow_response == 201:

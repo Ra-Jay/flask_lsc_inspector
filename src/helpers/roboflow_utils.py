@@ -73,10 +73,7 @@ def deploy_model(api_key : str, workspace_name : str, project_name : str, datase
       project.version(dataset.version).deploy(model_type=model_type, model_path=model_path)
       return 201
   except Exception as e:
-      return jsonify({
-          'error': e.args[0]['error'] + '.',
-          'message': 'Model deployment failed.'
-      }), e.args[0]['statusCode']
+      return e.args[0], 500
 
 def get_result_details(results : dict[str, list]):
   """
@@ -88,7 +85,6 @@ def get_result_details(results : dict[str, list]):
   Returns:
     `dict`: A dictionary containing the classification, confidence, and error rate.
   """
-  
   classification = [prediction['class'] for prediction in results['predictions']][0]
   accuracy = round([prediction['confidence'] for prediction in results['predictions']][0], 2) * 100
   error_rate = 100 - accuracy
