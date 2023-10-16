@@ -9,6 +9,7 @@ from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 import os
 import uuid
+from datetime import datetime
 
 auth = Blueprint("auth", __name__, url_prefix="/api/v1/users")
 
@@ -234,9 +235,10 @@ def update_password(id):
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
    
     if check_hash(user.password, old_password):
-        user.passw0rd = get_hash(new_password)
+        user.password = get_hash(new_password)
+        user.updated_at = datetime.now()
     else :
-          return jsonify({'message': 'Password doens\'t match.'}), HTTP_404_NOT_FOUND
+          return jsonify({'message': 'Password doesn\'t match.'}), HTTP_404_NOT_FOUND
 
     db.session.commit()
 
