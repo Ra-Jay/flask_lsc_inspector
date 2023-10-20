@@ -71,6 +71,7 @@ def analyze():
     project_name = request.json['project_name']
     api_key = request.json['api_key']
     version = request.json['version']
+    weight_id = request.json['weight_id']
     # Add this if the implmentation of the user having previously deployed a model to roboflow is ready.
     # api_key = request.json['api_key']
     # project_name = request.json['project_name']
@@ -104,7 +105,8 @@ def analyze():
         error_rate=result['error_rate'], 
         dimensions=get_image_dimensions(result_data), 
         size=get_image_size(result_data),
-        url=''
+        url='',
+        weight_id=weight_id
       )
     db.session.add(file)
     db.session.commit()
