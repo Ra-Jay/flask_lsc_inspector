@@ -1,7 +1,7 @@
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, current_app, request, jsonify
 from src.helpers.file_utils import generate_hex, get_file, get_file_base_name, get_image_dimensions, get_image_size, convert_image_to_bytes
-from src.helpers.supabase_utils import upload_file_to_bucket, download_file_from_bucket, get_file_url_by_name, delete_file_by_name
+from src.helpers.supabase_utils import upload_file_to_bucket
 from src.helpers.roboflow_utils import perform_inference
 from src.models.files import Files
 from ..extensions import db
@@ -177,43 +177,6 @@ def demo():
     else:
       return supabase_response
     
-@files.post('/download')
-@jwt_required()
-def download():
-  """
-  Downloads the file based on its ID and the current user's identity.
-  
-  Body:
-    `JSON Body`: The JSON body that contains the `id` and `destination` attributes.
-    
-  Returns:
-    `JSON Response`: Message with a status code of `200 (HTTP_200_OK)`.
-    
-    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
-    
-    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
-  """
-  current_user = get_jwt_identity()
-  if request.method == 'POST':
-    file_id_to_download = request.json['id']
-    destination = request.json['destination']
-    
-    file = Files.query.filter_by(user_id=current_user, id=file_id_to_download).first()
-    if not file:
-      return jsonify({'error': 'File not found.'}), HTTP_404_NOT_FOUND
-    
-    file_data = download_file_from_bucket(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
-    
-    if type(file_data) is tuple:
-      return jsonify({'error': 'Failed to download the file.'}), HTTP_500_INTERNAL_SERVER_ERROR
-    
-    with open(destination, 'wb') as f:
-      f.write(file_data)
-    
-    return jsonify({
-      'destination': destination
-      }), HTTP_200_OK
-  
 @files.get('/')
 @jwt_required()
 def get_all():
