@@ -1,7 +1,7 @@
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, current_app, request, jsonify
 from src.helpers.file_utils import generate_hex, get_file, get_file_base_name, get_image_dimensions, get_image_size, convert_image_to_bytes
-from src.helpers.supabase_utils import upload_file_to_bucket
+from src.helpers.supabase_utils import delete_file_by_name, upload_file_to_bucket
 from src.helpers.roboflow_utils import perform_inference
 from src.models.files import Files
 from ..extensions import db
@@ -266,7 +266,7 @@ def delete_by_id(id):
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
-  # delete_file_by_name('files', file.name)
+  delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
   
   db.session.delete(file)
   db.session.commit()
