@@ -288,9 +288,13 @@ def delete_all():
     `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
   """
   current_user = get_jwt_identity()
-  print('current: -------------------------- ',current_user)
   
-  # delete_file_by_name('files', file.name)
+  files = Files.query.filter_by(user_id=current_user)
+  if not files:
+    return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
+  
+  for file in files:
+    delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
   
   db.session.query(Files).filter_by(user_id=current_user).delete()
   db.session.commit()
