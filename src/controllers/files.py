@@ -10,7 +10,7 @@ import uuid
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
-@files.route('/upload', methods=['POST', 'GET'])
+@files.post('/upload')
 def upload():
   """
   Handles the uploaded file to the supabase bucket. 
@@ -22,30 +22,29 @@ def upload():
   Returns:
     `JSON Response`: File object with a status code of `201`, otherwise returns the error response from the server.
   """  
-  if request.method == 'POST':
-    if 'file' not in request.files:
-      return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
-    
-    file = get_file(request.files['file'])
-    file_name : str = file['name']
-    file_data : bytes = file['data']
+  if 'file' not in request.files:
+    return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
+  
+  file = get_file(request.files['file'])
+  file_name : str = file['name']
+  file_data : bytes = file['data']
 
-    supabase_response = upload_file_to_bucket(
-        current_app.config['SUPABASE_BUCKET_FILES'], 
-        'uploads/' + generate_hex() + file_name, 
-        file_data
-      )
-    if type(supabase_response) is str:
-      return jsonify({
-          'url': supabase_response,
-          'name': file_name,
-          'dimensions': get_image_dimensions(file_data),
-          'size': get_image_size(file_data)
-      }), HTTP_201_CREATED
-    else:
-      return supabase_response
+  supabase_response = upload_file_to_bucket(
+      current_app.config['SUPABASE_BUCKET_FILES'], 
+      'uploads/' + generate_hex() + file_name, 
+      file_data
+    )
+  if type(supabase_response) is str:
+    return jsonify({
+        'url': supabase_response,
+        'name': file_name,
+        'dimensions': get_image_dimensions(file_data),
+        'size': get_image_size(file_data)
+    }), HTTP_201_CREATED
+  else:
+    return supabase_response
     
-@files.route('/analyze', methods=['POST', 'GET'])
+@files.post('/analyze')
 @jwt_required()
 def analyze():
   """
@@ -66,77 +65,71 @@ def analyze():
     `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
   """  
   current_user = get_jwt_identity()
-  if request.method == 'POST':
-    uploaded_file_url = request.json['url']
-    project_name = request.json['project_name']
-    api_key = request.json['api_key']
-    version = request.json['version']
-    weight_id = request.json['weight_id']
-    # Add this if the implmentation of the user having previously deployed a model to roboflow is ready.
-    # api_key = request.json['api_key']
-    # project_name = request.json['project_name']
-    # version_number = request.json['version_number']
-    print("--=-=-=-=-=-=-=-==-=-=-", api_key)
-    if uploaded_file_url is None:
-      return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
-    
-    uploaded_file_name = get_file_base_name(uploaded_file_url)
-    existing_file = Files.query.filter_by(name=uploaded_file_name, user_id=current_user).first()
-    if existing_file:
-      return jsonify({
-        'error': 'File already exists.',
-        'url': existing_file.url
-        }), HTTP_409_CONFLICT
-    
-    # Add the api_key, project_name, and version_number if the implmentation of the user having previously deployed a model to roboflow is ready.
-    result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
-    
-    if result is None:
-      return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
-    
-    result_data = convert_image_to_bytes(result['image'])
-    
-    file = Files(
-        id=uuid.uuid4(),
-        name=uploaded_file_name, 
-        user_id=current_user, 
-        classification=result['classification'], 
-        accuracy=result['accuracy'],  
-        error_rate=result['error_rate'], 
-        dimensions=get_image_dimensions(result_data), 
-        size=get_image_size(result_data),
-        url='',
-        weight_id=weight_id
-      )
-    db.session.add(file)
+  
+  uploaded_file_url = request.json['url']
+  project_name = request.json['project_name']
+  api_key = request.json['api_key']
+  version = request.json['version']
+  weight_id = request.json['weight_id']
+
+  if uploaded_file_url is None:
+    return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
+  
+  uploaded_file_name = get_file_base_name(uploaded_file_url)
+  existing_file = Files.query.filter_by(name=uploaded_file_name, user_id=current_user).first()
+  if existing_file:
+    return jsonify({
+      'error': 'File already exists.',
+      'url': existing_file.url
+      }), HTTP_409_CONFLICT
+  
+  result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
+  if result is None:
+    return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
+  
+  result_data = convert_image_to_bytes(result['image'])
+  
+  file = Files(
+      id=uuid.uuid4(),
+      name=uploaded_file_name, 
+      user_id=current_user, 
+      classification=result['classification'], 
+      accuracy=result['accuracy'],  
+      error_rate=result['error_rate'], 
+      dimensions=get_image_dimensions(result_data), 
+      size=get_image_size(result_data),
+      url='',
+      weight_id=weight_id
+    )
+  db.session.add(file)
+  db.session.commit()
+  
+  new_file_name = generate_hex() + uploaded_file_name
+  
+  supabase_response = upload_file_to_bucket(
+      current_app.config['SUPABASE_BUCKET_FILES'], 
+      'main/' + new_file_name,
+      result_data
+    )
+  if type(supabase_response) is str:
+    file.name = new_file_name
+    file.url = supabase_response
     db.session.commit()
     
-    new_file_name = generate_hex() + uploaded_file_name
-    
-    supabase_response = upload_file_to_bucket(
-        current_app.config['SUPABASE_BUCKET_FILES'], 
-        'main/' + new_file_name,
-        result_data
-      )
-    if type(supabase_response) is str:
-      file.name = new_file_name
-      file.url = supabase_response
-      db.session.commit()
-      
-      return jsonify({
-        'id': file.id,
-        'name': file.name,
-        'dimensions': file.dimensions,
-        'size': file.size,
-        'url': file.url,
-        'classification': file.classification,
-        'accuracy': file.accuracy,
-        'error_rate': file.error_rate
-        }), HTTP_201_CREATED
-    else:
-      return supabase_response
+    return jsonify({
+      'id': file.id,
+      'name': file.name,
+      'dimensions': file.dimensions,
+      'size': file.size,
+      'url': file.url,
+      'classification': file.classification,
+      'accuracy': file.accuracy,
+      'error_rate': file.error_rate
+      }), HTTP_201_CREATED
+  else:
+    return supabase_response
  
-@files.route('/demo', methods=['POST', 'GET'])
+@files.post('/demo')
 def demo():
   """
   Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
@@ -153,31 +146,30 @@ def demo():
     
     `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
   """
-  if request.method == 'POST':
-    uploaded_file_url = request.json['url']
-    if uploaded_file_url is None:
-      return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
+  uploaded_file_url = request.json['url']
+  if uploaded_file_url is None:
+    return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
+  
+  uploaded_file_name = get_file_base_name(uploaded_file_url)
     
-    uploaded_file_name = get_file_base_name(uploaded_file_url)
-      
-    result = perform_inference(image_url=uploaded_file_url)
-    if result is None:
-      return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
-    
-    supabase_response = upload_file_to_bucket(
-        current_app.config['SUPABASE_BUCKET_FILES'], 
-        'demos/' + generate_hex() + uploaded_file_name, 
-        convert_image_to_bytes(result['image'])
-      )
-    if type(supabase_response) is str:
-      return jsonify({
-        'url': supabase_response,
-        'classification': result['classification'],
-        'accuracy': result['accuracy'],
-        'error_rate': result['error_rate'],
-        }), HTTP_201_CREATED
-    else:
-      return supabase_response
+  result = perform_inference(image_url=uploaded_file_url)
+  if result is None:
+    return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
+  
+  supabase_response = upload_file_to_bucket(
+      current_app.config['SUPABASE_BUCKET_FILES'], 
+      'demos/' + generate_hex() + uploaded_file_name, 
+      convert_image_to_bytes(result['image'])
+    )
+  if type(supabase_response) is str:
+    return jsonify({
+      'url': supabase_response,
+      'classification': result['classification'],
+      'accuracy': result['accuracy'],
+      'error_rate': result['error_rate'],
+      }), HTTP_201_CREATED
+  else:
+    return supabase_response
     
 @files.get('/')
 @jwt_required()
