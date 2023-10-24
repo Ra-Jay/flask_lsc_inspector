@@ -1,7 +1,7 @@
 from flask import Flask
 from src.constants.status_codes import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from src.extensions import api, db
-from src.controllers.user import auth
+from src.controllers.user import users
 from src.controllers.weights import weights
 from src.controllers.files import files
 from flask_jwt_extended import JWTManager
@@ -41,7 +41,7 @@ def create_app(test_config=None):
         db.create_all()
 
     JWTManager(app)
-    app.register_blueprint(auth)
+    app.register_blueprint(users)
     app.register_blueprint(weights)
     app.register_blueprint(files)
 
