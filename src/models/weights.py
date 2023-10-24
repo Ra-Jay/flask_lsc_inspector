@@ -7,7 +7,7 @@ class Weights(db.Model):
     user_id=db.Column(db.String(50), db.ForeignKey('users.id'))
     workspace=db.Column(db.String(50), nullable=True)
     project_name = db.Column(db.String(50), nullable=False)
-    api_key=db.Column(db.String(50),unique=True, nullable=False)
+    api_key=db.Column(db.String(50),unique=False, nullable=False)
     version=db.Column(db.Integer, nullable=True)
     model_type=db.Column(db.String(50), nullable=True)
     created_at=db.Column(db.DateTime, default=datetime.now())

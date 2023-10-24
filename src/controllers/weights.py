@@ -39,7 +39,7 @@ def post():
         model_path = request.json.get('model_path', '') #FileSave in the frontend
         type = request.json.get('type', '')
 
-        if Weights.query.filter_by(api_key=api_key).first():
+        if Weights.query.filter_by(api_key=api_key, user_id=current_user).first():
             return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
         
         if type == 'custom':
