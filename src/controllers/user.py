@@ -7,7 +7,7 @@ from src.models.users import Users
 from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
-import uuid
+from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,7 +32,7 @@ def register():
 
     validate_user_details(username, password, email)
     try:
-        user=Users(id = uuid.uuid4(), username=username, password=get_hash(password), email=email)
+        user=Users(id = uuid4(), username=username, password=get_hash(password), email=email)
         db.session.add(user)
         db.session.commit()
         return jsonify({
@@ -106,7 +106,7 @@ def refresh_users_token():
 
 @users.put('/<uuid(strict=False):id>/edit')
 @jwt_required()
-def edit(id : uuid):
+def edit(id : uuid4):
     """
     Edit a user.
     
@@ -153,7 +153,7 @@ def edit(id : uuid):
 
 @users.put('/<uuid(strict=False):id>/profile-image/edit')
 @jwt_required()
-def edit_profile_image(id : uuid):
+def edit_profile_image(id : uuid4):
     """
     Edit a user's profile image.
     
