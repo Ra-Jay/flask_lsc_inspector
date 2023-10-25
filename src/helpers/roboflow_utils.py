@@ -33,7 +33,10 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     image_bytes = convert_bytes_to_BytesIO(image_response.content)
     retrieved_image = convert_BytesIO_to_image(image_bytes)
     
-    results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
+    try:
+      results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
+    except Exception as e:
+      return jsonify({'error': str(e)}), 500
     
     resulting_image = draw_boxes_on_image(retrieved_image, results["predictions"])
     result_details = get_result_details(results)
@@ -73,7 +76,7 @@ def deploy_model(api_key : str, workspace_name : str, project_name : str, datase
       project.version(dataset.version).deploy(model_type=model_type, model_path=model_path)
       return 201
   except Exception as e:
-      return e.args[0], 500
+      return jsonify({'error': str(e)}), 500
 
 def get_result_details(results : dict[str, list]):
   """
