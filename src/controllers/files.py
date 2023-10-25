@@ -7,20 +7,24 @@ from src.models.files import Files
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
 import uuid
+from sqlalchemy.exc import SQLAlchemyError
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
 
 @files.post('/upload')
 def upload():
   """
-  Handles the uploaded file to the supabase bucket. 
-  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`,
+  Handles the uploaded file to the Supabase. 
   
   Body:
     `Multipart-Form/Form-Data`: The multipart-form/form-data as a file with the key 'file'.
     
   Returns:
-    `JSON Response`: File object with a status code of `201`, otherwise returns the error response from the server.
+    `JSON Response (201)`: The response from the server with the file details: `url`, `name`, `dimensions`, and `size`.
+    
+    `JSON Response (400)`: If no file is uploaded.
+    
+    `JSON Supabase Response`: If there is an error while uploading the file to Supabase.
   """  
   if 'file' not in request.files:
     return jsonify({'error': 'No file found.'}), HTTP_400_BAD_REQUEST
@@ -48,117 +52,111 @@ def upload():
 @jwt_required()
 def analyze():
   """
-  Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
-  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`, 
-  `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  Handles the analysis of the uploaded file using the custom weights of the user.
   
   Body:
-    `JSON Body`: The JSON body that contains the following attributes: `url`, `api_key`, `project_name`, and `version_number`.
+    `JSON Body`: The JSON body that contains: `url`, `api_key`, `project_name`, and `version_number`.
 
   Returns:
-    `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
+    `JSON Response (201)`: The response from the server with the file details: `id`, `name`, `dimensions`, `size`, `url`, `classification`, `accuracy`, and `error_rate`.
     
-    `400 (HTTP_400_BAD_REQUEST)`: If no file is uploaded.
+    `JSON Response (400)`: If no file is uploaded.
     
-    `409 (HTTP_409_CONFLICT)`: If the file already exists in the supabase bucket.
+    `JSON Response (409)`: If the file already exists in the database.
     
-    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+    `JSON Response (500)`: If there is an SQLAlchemy error.
+    
+    `JSON Roboflow Response`: If there is an error while performing inference in Roboflow.
+    
+    `JSON Supabase Response`: If there is an error while uploading the file to Supabase.
   """  
-  current_user = get_jwt_identity()
-  
   uploaded_file_url = request.json['url']
+  if uploaded_file_url is None:
+    return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
+  
+  current_user = get_jwt_identity()
+  uploaded_file_name = get_file_base_name(uploaded_file_url)
+  existing_file = Files.query.filter_by(name=uploaded_file_name, user_id=current_user).first()
+  if existing_file:
+    return jsonify({'error': 'File already exists.', 'url': existing_file.url}), HTTP_409_CONFLICT
+  
   project_name = request.json['project_name']
   api_key = request.json['api_key']
   version = request.json['version']
   weight_id = request.json['weight_id']
-
-  if uploaded_file_url is None:
-    return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
-  
-  uploaded_file_name = get_file_base_name(uploaded_file_url)
-  existing_file = Files.query.filter_by(name=uploaded_file_name, user_id=current_user).first()
-  if existing_file:
-    return jsonify({
-      'error': 'File already exists.',
-      'url': existing_file.url
-      }), HTTP_409_CONFLICT
   
   result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
-  if result is None:
-    return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
+  if type(result) is not dict:
+    return result
   
   result_data = convert_image_to_bytes(result['image'])
-  
-  file = Files(
-      id=uuid.uuid4(),
-      name=uploaded_file_name, 
-      user_id=current_user, 
-      classification=result['classification'], 
-      accuracy=result['accuracy'],  
-      error_rate=result['error_rate'], 
-      dimensions=get_image_dimensions(result_data), 
-      size=get_image_size(result_data),
-      url='',
-      weight_id=weight_id
-    )
-  db.session.add(file)
-  db.session.commit()
-  
   new_file_name = generate_hex() + uploaded_file_name
-  
+
   supabase_response = upload_file_to_bucket(
       current_app.config['SUPABASE_BUCKET_FILES'], 
       'main/' + new_file_name,
       result_data
     )
   if type(supabase_response) is str:
-    file.name = new_file_name
-    file.url = supabase_response
-    db.session.commit()
-    
-    return jsonify({
-      'id': file.id,
-      'name': file.name,
-      'dimensions': file.dimensions,
-      'size': file.size,
-      'url': file.url,
-      'classification': file.classification,
-      'accuracy': file.accuracy,
-      'error_rate': file.error_rate
-      }), HTTP_201_CREATED
+    try:
+      file = Files(
+          id=uuid.uuid4(),
+          name=new_file_name, 
+          user_id=current_user, 
+          classification=result['classification'], 
+          accuracy=result['accuracy'],  
+          error_rate=result['error_rate'], 
+          dimensions=get_image_dimensions(result_data), 
+          size=get_image_size(result_data),
+          url=supabase_response,
+          weight_id=weight_id
+        )
+      db.session.add(file)
+      db.session.commit()
+      return jsonify({
+        'id': file.id,
+        'name': file.name,
+        'dimensions': file.dimensions,
+        'size': file.size,
+        'url': file.url,
+        'classification': file.classification,
+        'accuracy': file.accuracy,
+        'error_rate': file.error_rate
+        }), HTTP_201_CREATED
+    except SQLAlchemyError as e:
+      db.session.rollback()
+      return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
   else:
     return supabase_response
  
 @files.post('/demo')
 def demo():
   """
-  Handles the analysis of the uploaded file using the uploaded custom model/weights of the user from the session.
+  Handles the analysis of the uploaded file using the pre-defined weights of the application.
   
   Body:
     `JSON Body`: The JSON body that contains the `url` attribute only.
     
   Returns:
-    `JSON Response`: File object with a status code of `201 (HTTP_201_CREATED)`.
+    `JSON Response (201)`: The response from the server with the file details: `url`, `classification`, `accuracy`, and `error_rate`.
     
-    `400 (HTTP_400_BAD_REQUEST)`: If no file is uploaded.
+    `JSON Response (400)`: If no file is uploaded.
     
-    `409 (HTTP_409_CONFLICT)`: If the file already exists in the supabase bucket.
+    `JSON Roboflow Response`: If there is an error while performing inference in Roboflow.
     
-    `500 (HTTP_500_INTERNAL_SERVER_ERROR)`: If there is an internal server error either in supabase or source code.
+    `JSON Supabase Response`: If there is an error while uploading the file to Supabase.
   """
   uploaded_file_url = request.json['url']
   if uploaded_file_url is None:
     return jsonify({'error': 'No uploaded file found.'}), HTTP_400_BAD_REQUEST
   
-  uploaded_file_name = get_file_base_name(uploaded_file_url)
-    
-  result = perform_inference(image_url=uploaded_file_url)
-  if result is None:
-    return jsonify({'error': 'Failed to analyze the image.'}), HTTP_500_INTERNAL_SERVER_ERROR
+  result = perform_inference(uploaded_file_url)
+  if type(result) is not dict:
+    return result
   
   supabase_response = upload_file_to_bucket(
       current_app.config['SUPABASE_BUCKET_FILES'], 
-      'demos/' + generate_hex() + uploaded_file_name, 
+      'demos/' + generate_hex() + get_file_base_name(uploaded_file_url), 
       convert_image_to_bytes(result['image'])
     )
   if type(supabase_response) is str:
@@ -175,16 +173,15 @@ def demo():
 @jwt_required()
 def get_all():
   """
-  Retrieves files associated with the current user. Each file object in the list includes the following attributes: 
-  `id`, `name`, `dimensions`, `size`, `url`, `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`. 
+  Retrieves files of the current user.
   
   Returns: 
-    `JSON response`: List of file objects with a status code of `200 (HTTP_200_OK)`.
+    `JSON Response (200)`: The response from the server with the list of file and its 
+    details: `id`, `name`, `dimensions`, `size`, `url`, `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
     
-    `404 (HTTP_404_NOT_FOUND)`: If the files are not found.
+    `JSON Response (204)`: If there are no files found.
   """
-  current_user = get_jwt_identity()
-  files = Files.query.filter_by(user_id=current_user)
+  files = Files.query.filter_by(user_id=get_jwt_identity())
   if not files:
     return jsonify({'message': 'No files found'}), HTTP_204_NO_CONTENT
   
@@ -209,20 +206,18 @@ def get_all():
 @jwt_required()
 def get_by_id(id):
   """
-  Retrieves information about a file based on its ID and the current user's identity. 
-  The file object includes the following attributes: `id`, `name`, `dimensions`, `size`, `url`, 
-  `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+  Retrieves file by its id of the current user.
   
   Parameters: 
-    `id`: The unique identifier of the file that the user want to retrieve.
+    `id`: The unique identifier of the file that the user wants to retrieve.
     
   Returns:
-    `JSON response`: File object with a status code of `200 (HTTP_200_OK)`.
-
-    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+    `JSON Response (200)`: The response from the server with the file details: `id`, `name`, `dimensions`, 
+    `size`, `url`, `classification`, `accuracy`, `error_rate`, `created_at`, and `updated_at`.
+    
+    `JSON Response (404)`: If the file is not found.
   """
-  current_user = get_jwt_identity()
-  file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
+  file = Files.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
@@ -239,33 +234,37 @@ def get_by_id(id):
     'updated_at': file.updated_at
     }), HTTP_200_OK
 
-@files.delete('/<uuid(strict=False):id>')
+@files.delete('/<uuid(strict=False):id>/delete')
 @jwt_required()
 def delete_by_id(id):
   """
-  Deletes the file object based on its ID and the current user's identity.
+  Deletes the file by its id of the current user.
 
   Parameters:
     `id`: The unique identifier of the file that the user wants to delete.
 
   Returns:
-    `JSON response`: Message with a status code of `200 (HTTP_200_OK)`.
-
-    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+    `JSON Response (200)`: The response from the server with the successful `message`.
+    
+    `JSON Response (404)`: If the file is not found.
+    
+    `JSON Response (500)`: If there is an SQLAlchemy error.
   """
-  current_user = get_jwt_identity()
-  file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
+  file = Files.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
   delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
   
-  db.session.delete(file)
-  db.session.commit()
-  
-  return jsonify({'message': 'File successfully deleted'}), HTTP_200_OK
+  try:
+    db.session.delete(file)
+    db.session.commit()
+    return jsonify({'message': 'File successfully deleted'}), HTTP_200_OK
+  except SQLAlchemyError as e:
+    db.session.rollback()
+    return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
 
-@files.delete('/')
+@files.delete('/clear')
 @jwt_required()
 def delete_all():
   """
@@ -275,12 +274,13 @@ def delete_all():
     `id`: The unique identifier of the file that the user wants to delete.
 
   Returns:
-    `JSON response`: Message with a status code of `200 (HTTP_200_OK)`.
-
-    `404 (HTTP_404_NOT_FOUND)`: If the file is not found.
+    `JSON Response (200)`: The response from the server with the successful `message`.
+    
+    `JSON Response (404)`: If the file is not found.
+    
+    `JSON Response (500)`: If there is an SQLAlchemy error.
   """
   current_user = get_jwt_identity()
-  
   files = Files.query.filter_by(user_id=current_user)
   if not files:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
@@ -288,7 +288,10 @@ def delete_all():
   for file in files:
     delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
   
-  db.session.query(Files).filter_by(user_id=current_user).delete()
-  db.session.commit()
-  
-  return jsonify({'message': 'File successfully deleted'}), HTTP_200_OK
+  try:
+    db.session.query(Files).filter_by(user_id=current_user).delete()
+    db.session.commit()
+    return jsonify({'message': 'File successfully deleted'}), HTTP_200_OK
+  except SQLAlchemyError as e:
+    db.session.rollback()
+    return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
