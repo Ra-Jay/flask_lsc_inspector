@@ -44,8 +44,7 @@ def register():
         }), HTTP_201_CREATED
     except SQLAlchemyError as e:
         db.session.rollback()
-        error = str(e.orig)
-        return jsonify({'error': error}), HTTP_500_INTERNAL_SERVER_ERROR
+        return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
 
 @users.post('/login')
 def login():
@@ -150,8 +149,7 @@ def edit(id : uuid):
         }), HTTP_200_OK
     except SQLAlchemyError as e:
         db.session.rollback()
-        error = str(e.orig)
-        return jsonify({'error': error}), HTTP_500_INTERNAL_SERVER_ERROR
+        return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
 
 @users.put('/<uuid(strict=False):id>/profile-image/edit')
 @jwt_required()
@@ -202,8 +200,7 @@ def edit_profile_image(id : uuid):
             }), HTTP_200_OK
         except SQLAlchemyError as e:
             db.session.rollback()
-            error = str(e.orig)
-            return jsonify({'error': error}), HTTP_500_INTERNAL_SERVER_ERROR
+            return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
     else:
         return supabase_response
     
@@ -254,7 +251,6 @@ def edit_password(id):
             }), HTTP_200_OK
         except SQLAlchemyError as e:
             db.session.rollback()
-            error = str(e.orig)
-            return jsonify({'error': error}), HTTP_500_INTERNAL_SERVER_ERROR
+            return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
     else :
           return jsonify({'message': 'Password doesn\'t match.'}), HTTP_400_BAD_REQUEST
