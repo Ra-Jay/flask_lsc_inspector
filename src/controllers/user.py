@@ -204,7 +204,7 @@ def edit_profile_image(id : uuid):
     else:
         return supabase_response
     
-@users.put('/<uuid(strict=False):id>/password')
+@users.put('/<uuid(strict=False):id>/password/edit')
 @jwt_required()
 def edit_password(id):
     """
