@@ -40,6 +40,8 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     
     resulting_image = draw_boxes_on_image(retrieved_image, results["predictions"])
     result_details = get_result_details(results)
+    if result_details == 500:
+      return jsonify({'message': 'No predictions for this file.'}), 500
     
     return {
       'image': resulting_image,
@@ -88,12 +90,14 @@ def get_result_details(results : dict[str, list]):
   Returns:
     `dict`: A dictionary containing the classification, confidence, and error rate.
   """
-  classification = [prediction['class'] for prediction in results['predictions']][0]
-  accuracy = round([prediction['confidence'] for prediction in results['predictions']][0], 2) * 100
-  error_rate = 100 - accuracy
-  
-  return {
-    'classification': classification,
-    'accuracy': f"{accuracy:.0f}%",
-    'error_rate': f"{error_rate:.0f}%"
-  }
+  try:
+    classification = [prediction['class'] for prediction in results['predictions']][0]
+    accuracy = round([prediction['confidence'] for prediction in results['predictions']][0], 2) * 100
+    error_rate = 100 - accuracy
+    return {
+      'classification': classification,
+      'accuracy': f"{accuracy:.0f}%",
+      'error_rate': f"{error_rate:.0f}%"
+    }
+  except Exception as e:
+    return 500
