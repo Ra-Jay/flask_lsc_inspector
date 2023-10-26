@@ -6,7 +6,7 @@ from src.helpers.roboflow_utils import perform_inference
 from src.models.files import Files
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
-import uuid
+from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
 
 files = Blueprint("files", __name__, url_prefix="/api/v1/files")
@@ -100,7 +100,7 @@ def analyze():
   if type(supabase_response) is str:
     try:
       file = Files(
-          id=uuid.uuid4(),
+          id=uuid4(),
           name=new_file_name, 
           user_id=current_user, 
           classification=result['classification'], 
