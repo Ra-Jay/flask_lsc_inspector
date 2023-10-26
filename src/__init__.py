@@ -1,5 +1,4 @@
 from flask import Flask
-from src.constants.status_codes import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from src.extensions import api, db
 from src.controllers.user import users
 from src.controllers.weights import weights
@@ -7,38 +6,36 @@ from src.controllers.files import files
 from flask_jwt_extended import JWTManager
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS
-import os
+from os import environ, urandom
 
 def create_app(test_config=None):
-     
     app = Flask(__name__,
     instance_relative_config=True)
-
     if test_config is None:
         app.config.from_mapping(
-            SECRET_KEY=os.urandom(24).hex(),
-            SQLALCHEMY_DATABASE_URI=os.environ.get('SQLALCHEMY_DB_URI'),
+            SECRET_KEY=urandom(24).hex(),
+            SQLALCHEMY_DATABASE_URI=environ.get('SQLALCHEMY_DB_URI'),
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
-            JWT_SECRET_KEY=os.environ.get(  'JWT_SECRET_KEY'),
-            SUPABASE_URL=os.environ.get('SUPABASE_URL'),
-            SUPABASE_KEY=os.environ.get('SUPABASE_KEY'),
-            SUPABASE_BUCKET_FILES=os.environ.get('SUPABASE_BUCKET_FILES'),
-            SUPABASE_BUCKET_WEIGHTS=os.environ.get('SUPABASE_BUCKET_WEIGHTS'),
-            SUPABASE_BUCKET_PROFILE_IMAGES=os.environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
-            ROBOFLOW_API_KEY=os.environ.get('ROBOFLOW_API_KEY'),
-            ROBOFLOW_PROJECT=os.environ.get('ROBOFLOW_PROJECT'),
+            JWT_SECRET_KEY=environ.get(  'JWT_SECRET_KEY'),
+            SUPABASE_URL=environ.get('SUPABASE_URL'),
+            SUPABASE_KEY=environ.get('SUPABASE_KEY'),
+            SUPABASE_BUCKET_FILES=environ.get('SUPABASE_BUCKET_FILES'),
+            SUPABASE_BUCKET_WEIGHTS=environ.get('SUPABASE_BUCKET_WEIGHTS'),
+            SUPABASE_BUCKET_PROFILE_IMAGES=environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
+            ROBOFLOW_API_KEY=environ.get('ROBOFLOW_API_KEY'),
+            ROBOFLOW_PROJECT=environ.get('ROBOFLOW_PROJECT'),
         )
-
-
     else: 
         app.config.from_mapping(test_config)
 
-    db.app = app
-    api.init_app(app)
-    db.init_app(app)
-    
-    with app.app_context():
-        db.create_all()
+    try:
+        db.app = app
+        api.init_app(app)
+        db.init_app(app)
+        with app.app_context():
+            db.create_all()
+    except Exception as e:
+        print(e)
 
     JWTManager(app)
     app.register_blueprint(users)
@@ -57,12 +54,4 @@ def create_app(test_config=None):
 
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
     CORS(app)
-        
-    # @app.errorhandler(HTTP_404_NOT_FOUND)
-    # def handle_404(e):
-    #     return jsonify({'error': 'Not found'}), HTTP_404_NOT_FOUND
-
-    # @app.errorhandler(HTTP_500_INTERNAL_SERVER_ERROR)
-    # def handle_500(e):
-    #     return jsonify({'error': 'Something went wrong, we are working on it'}), HTTP_500_INTERNAL_SERVER_ERRORs
     return app
