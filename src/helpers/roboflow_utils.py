@@ -1,5 +1,5 @@
 from roboflow import Roboflow
-import requests
+from requests import get as getRequest
 from flask import current_app, jsonify
 from src.helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
 
@@ -26,7 +26,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
   project = rf.workspace().project(project_name or  current_app.config['ROBOFLOW_PROJECT'])
   custom_model = project.version(version_number or 1).model
   
-  image_response = requests.get(image_url)
+  image_response = getRequest(image_url)
   
   if image_response.status_code == 200:
     retrieved_image = convert_bytes_to_image(image_response.content)
