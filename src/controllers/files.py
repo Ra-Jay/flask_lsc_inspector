@@ -35,7 +35,7 @@ def upload():
 
   supabase_response = upload_file_to_bucket(
       "FILES", 
-      f"uploads/{generate_hex()}{file_name}", 
+      f"uploads/users/{generate_hex()}{file_name}", 
       file_data
     )
   if type(supabase_response) is str:
