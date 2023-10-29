@@ -1,6 +1,6 @@
 from os import path, urandom
 from io import BytesIO
-import numpy as np
+from numpy import asarray
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from PIL import Image, ImageDraw, ImageFont
@@ -46,17 +46,16 @@ def get_image_dimensions(file_data : bytes):
     Get the dimensions of an image.
 
     Parameters:
-        `file_data`: The file data that the user want to get the dimensions.
+        `file_data`: The file data as bytes that the user want to get the dimensions.
          
     Returns:
-        `str`: The dimensions of the image.
+        `str`: The dimensions of the image that concatenates the `width` and `height`.
     """
     try:
         image = convert_bytes_to_image(file_data)
         width, height = image.size
         return f"{width}x{height}"
-    except Exception as e:
-        print(f"Error while getting image dimensions: {e}")
+    except Exception:
         return None
 
 def get_image_size(file_data : bytes):
@@ -64,17 +63,16 @@ def get_image_size(file_data : bytes):
     Get the size of an image.
     
     Parameters:
-       `file_data`: The file data that the user want to get the size.
+       `file_data`: The file data as bytes that the user want to get the size.
        
     Returns:
-        `str`: The size of the image.
+        `str`: The size of the image in kilobytes.
     """
     try:
         file_size = len(file_data)
         size_in_kb = file_size / 1024
         return f"{size_in_kb:.2f} kB"
-    except Exception as e:
-        print(f"Error while getting image size: {e}")
+    except Exception:
         return None
     
 def convert_BytesIO_to_image(bytes_io : BytesIO):
@@ -89,8 +87,7 @@ def convert_BytesIO_to_image(bytes_io : BytesIO):
     """
     try:
         return Image.open(bytes_io)
-    except Exception as e:
-        print(f"Error while opening image: {e}")
+    except Exception:
         return None
     
 def convert_bytes_to_BytesIO(bytes : bytes):
@@ -105,8 +102,7 @@ def convert_bytes_to_BytesIO(bytes : bytes):
     """
     try:
         return BytesIO(bytes)
-    except Exception as e:
-        print(f"Error while getting image by bytes: {e}")
+    except Exception:
         return None
 
 def convert_file_to_bytes(file : FileStorage):
@@ -122,8 +118,7 @@ def convert_file_to_bytes(file : FileStorage):
     try:
         file_bytes : bytes = file.read()
         return file_bytes
-    except Exception as e:
-        print(f"Error while converting file to bytes: {e}")
+    except Exception:
         return None  
     
 def convert_image_to_ndarray(image : Image):
@@ -137,9 +132,8 @@ def convert_image_to_ndarray(image : Image):
         `ndarray`: The image as ndarray.
     """
     try:
-        return np.asarray(image)
-    except Exception as e:
-        print(f"Error while converting image to ndarray: {e}")
+        return asarray(image)
+    except Exception:
         return None
 
 def convert_image_to_bytes(image : Image):
@@ -157,8 +151,7 @@ def convert_image_to_bytes(image : Image):
             image.save(buf, format='PNG')
             image_bytes = buf.getvalue()
             return image_bytes
-    except Exception as e:
-        print(f"Error while converting image to bytes: {e}")
+    except Exception:
         return None
 
 def convert_bytes_to_image(bytes : bytes):
@@ -174,24 +167,22 @@ def convert_bytes_to_image(bytes : bytes):
     try:
         image = Image.open(BytesIO(bytes))
         return image
-    except Exception as e:
-        print(f"Error while converting bytes to image: {e}")
+    except Exception:
         return None
     
 def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
   """
-  Takes an image and a list of predictions, and returns the image with bounding boxes and class labels drawn on it.
+  Takes an image and a list of predictions, and draws the bounding boxes and class labels in the image.
   
   Parameters:
-    `image`: Image object.
+    `image`: PIL.Image object to be drawn on.
     
     `predictions`: List of predictions.
     
   Returns:
-    `image`: Image object with bounding boxes and class labels drawn on it.
+    `image`: The PIL.Image that was updated with the bounding boxes and class labels.
   """
   draw = ImageDraw.Draw(image)
-  
   for bounding_box in predictions:
     x0 = bounding_box['x'] - bounding_box['width'] / 2
     x1 = bounding_box['x'] + bounding_box['width'] / 2
@@ -217,7 +208,7 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
 
 def save_image(bytes : bytes, file_path : str):
     """
-    Saves an image to the local filesystem.
+    Saves an image to the local filesystem from the given file path.
     
     Parameters:
         `bytes`: The bytes of the image that you want to save.
@@ -225,11 +216,10 @@ def save_image(bytes : bytes, file_path : str):
         `file_path`: The path where you want to save the image.
         
     Returns:
-        `bool`: True if the image is saved successfully, False otherwise.
+        `bool`: True if the image is saved successfully, otherwise False.
     """
     try:
         convert_bytes_to_image(bytes).save(file_path)
         return True
-    except Exception as e:
-        print(f"Error while saving image to the local filesystem: {e}")
+    except Exception:
         return False
