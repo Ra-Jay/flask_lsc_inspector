@@ -38,7 +38,7 @@ def get_file(file_storage : FileStorage):
     """
     return {
         'name': secure_filename(file_storage.filename),
-        'data': convert_file_to_bytes(file_storage)
+        'data': file_storage.read()
     }
     
 def get_image_dimensions(file_data : bytes):
@@ -105,22 +105,6 @@ def convert_bytes_to_BytesIO(bytes : bytes):
     except Exception:
         return None
 
-def convert_file_to_bytes(file : FileStorage):
-    """
-    Convert a file to bytes.
-    
-    Parameters:
-        `file`: The file that the user want to convert.
-        
-    Returns:
-        `bytes`: The file read as bytes.
-    """
-    try:
-        file_bytes : bytes = file.read()
-        return file_bytes
-    except Exception:
-        return None  
-    
 def convert_image_to_ndarray(image : Image):
     """
     Convert an image to ndarray.
