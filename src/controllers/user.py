@@ -183,8 +183,8 @@ def edit_profile_image(id : uuid4):
 
     image = get_file(request.files['profile_image'])
     supabase_response = upload_file_to_bucket(
-            current_app.config['SUPABASE_BUCKET_PROFILE_IMAGES'], 
-            generate_hex() + image['name'], 
+            "PROFILE_IMAGES",
+            f"users/{str_id}/{generate_hex()}{image['name']}", 
             image['data']
         )
     if type(supabase_response) is str:

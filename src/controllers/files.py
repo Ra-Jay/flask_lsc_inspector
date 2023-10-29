@@ -34,8 +34,8 @@ def upload():
   file_data : bytes = file['data']
 
   supabase_response = upload_file_to_bucket(
-      current_app.config['SUPABASE_BUCKET_FILES'], 
-      'uploads/' + generate_hex() + file_name, 
+      "FILES", 
+      f"uploads/{generate_hex()}{file_name}", 
       file_data
     )
   if type(supabase_response) is str:
@@ -93,8 +93,8 @@ def analyze():
   new_file_name = generate_hex() + uploaded_file_name
 
   supabase_response = upload_file_to_bucket(
-      current_app.config['SUPABASE_BUCKET_FILES'], 
-      'main/' + new_file_name,
+      "FILES", 
+      f"main/{current_user}/{new_file_name}",
       result_data
     )
   if type(supabase_response) is str:
@@ -155,8 +155,8 @@ def demo():
     return result
   
   supabase_response = upload_file_to_bucket(
-      current_app.config['SUPABASE_BUCKET_FILES'], 
-      'demos/' + generate_hex() + get_file_base_name(uploaded_file_url), 
+      "FILES", 
+      f"demos/{generate_hex()}{get_file_base_name(uploaded_file_url)}", 
       convert_image_to_bytes(result['image'])
     )
   if type(supabase_response) is str:
@@ -250,11 +250,12 @@ def delete_by_id(id):
     
     `JSON Response (500)`: If there is an SQLAlchemy error.
   """
-  file = Files.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
+  str_id = str(id)
+  file = Files.query.filter_by(user_id=get_jwt_identity(), id=str_id).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
-  delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
+  delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], f"main/{str_id}/{file.name}")
   
   try:
     db.session.delete(file)
@@ -286,7 +287,7 @@ def delete_all():
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
   for file in files:
-    delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], 'main/' + file.name)
+    delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], f"main/{current_user}/{file.name}")
   
   try:
     db.session.query(Files).filter_by(user_id=current_user).delete()
