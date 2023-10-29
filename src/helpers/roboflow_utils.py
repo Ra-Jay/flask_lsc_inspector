@@ -1,6 +1,7 @@
 from roboflow import Roboflow
 from requests import get as getRequest
 from flask import current_app, jsonify
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 from src.helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
 
 def perform_inference(image_url : str, api_key=None, project_name=None, version_number=None):
@@ -15,30 +16,33 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     
     `project_name`: The name of the project where the custom model is located.
     
-    `version_number`: The version number of the custom model.
+    `version_number`: The version number of the dataset that the model was trained from.
     
   Returns:
-    `image`: Image object with bounding boxes and class labels drawn on it.
+    `dict[str, Any]`: Dictionary that contains: `image`, `classification`, `accuracy`, and `error_rate`.
     
-    `status_code`: The status code of the response. If the status code is not 200, then the image is not returned.
+    `JSON Response (400)`: If the model failed to predict the image. Caused by incorrect image and/or image size.
+    
+    `JSON Roboflow Response (500)`: If there is an error while performing inference in Roboflow.
   """
   rf = Roboflow(api_key or current_app.config['ROBOFLOW_API_KEY'])
   project = rf.workspace().project(project_name or  current_app.config['ROBOFLOW_PROJECT'])
   custom_model = project.version(version_number or 1).model
-  
+
   image_response = getRequest(image_url)
-  
-  if image_response.status_code == 200:
+  if image_response.status_code == HTTP_200_OK:
     retrieved_image = convert_bytes_to_image(image_response.content)
     try:
       results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
     except Exception as e:
-      return jsonify({'error': str(e)}), 500
+      return jsonify({'error': str(e)}), HTTP_500_INTERNAL_SERVER_ERROR
     
     resulting_image = draw_boxes_on_image(retrieved_image, results["predictions"])
     result_details = get_result_details(results)
-    if result_details == 500:
-      return jsonify({'message': 'No predictions for this file.'}), 500
+    if result_details == HTTP_400_BAD_REQUEST:
+      return jsonify(
+        {'message': 'Model may have failed to predict this file. Try another or use smaller file.'}
+        ), HTTP_400_BAD_REQUEST
     
     return {
       'image': resulting_image,
@@ -47,7 +51,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
       'error_rate': result_details['error_rate']
     }
   else:
-    return image_response.status_code
+    return jsonify({'message': 'Failed to retrieve the image through its public URL.'}), image_response.status_code
   
 def deploy_model(api_key : str, workspace_name : str, project_name : str, dataset_version : int, model_type : str, model_path : str):
   """
@@ -62,10 +66,17 @@ def deploy_model(api_key : str, workspace_name : str, project_name : str, datase
     
     `dataset_version`: The version number of the dataset.
     
-    `model_path`: The path of the model. Might require to be "weights/best.pt".
+    `model_path`: The path of the parent folder of the model.
+    
+  Example:
+    >>> "path/to/parent/folder/"
+    >>> # this folder must contain the following files:
+    >>> "weights/best.pt"
     
   Returns:
-    `None`
+    `JSON Response (201)`: If the model was successfully deployed to Roboflow.
+    
+    `JSON Roboflow Response (500)`: If there is an error while deploying the model to Roboflow.
   """
   try:
       rf = Roboflow(api_key=api_key)
@@ -73,9 +84,9 @@ def deploy_model(api_key : str, workspace_name : str, project_name : str, datase
       dataset = project.version(dataset_version)
       
       project.version(dataset.version).deploy(model_type=model_type, model_path=model_path)
-      return 201
+      return HTTP_201_CREATED
   except Exception as e:
-      return jsonify({'error': str(e)}), 500
+      return jsonify({'error': str(e)}), HTTP_500_INTERNAL_SERVER_ERROR
 
 def get_result_details(results : dict[str, list]):
   """
@@ -85,7 +96,9 @@ def get_result_details(results : dict[str, list]):
     `results`: List of predictions.
     
   Returns:
-    `dict`: A dictionary containing the classification, confidence, and error rate.
+    `dict`: A dictionary containing the `classification`, `confidence`, and `error rate`.
+    
+    `400`: If the model has returned an empty predictions. Caused by incorrect image and/or image size.
   """
   try:
     classification = [prediction['class'] for prediction in results['predictions']][0]
@@ -96,5 +109,5 @@ def get_result_details(results : dict[str, list]):
       'accuracy': f"{accuracy:.0f}%",
       'error_rate': f"{error_rate:.0f}%"
     }
-  except Exception as e:
-    return 500
+  except Exception:
+    return HTTP_400_BAD_REQUEST
