@@ -49,7 +49,7 @@ def deploy():
     )
     if type == 'custom':
         roboflow_response = deploy_model(api_key, weight.workspace, weight.project_name, weight.version, weight.model_type, model_path)
-        if roboflow_response != 201: return roboflow_response
+        if roboflow_response != HTTP_201_CREATED: return roboflow_response
     try:
         db.session.add(weight)
         db.session.commit()
