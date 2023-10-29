@@ -205,21 +205,3 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
     draw.text((x0, y0), text, fill="green" if bounding_box['class'] == "Good" else "red", spacing=5, font=font)
     
   return image
-
-def save_image(bytes : bytes, file_path : str):
-    """
-    Saves an image to the local filesystem from the given file path.
-    
-    Parameters:
-        `bytes`: The bytes of the image that you want to save.
-        
-        `file_path`: The path where you want to save the image.
-        
-    Returns:
-        `bool`: True if the image is saved successfully, otherwise False.
-    """
-    try:
-        convert_bytes_to_image(bytes).save(file_path)
-        return True
-    except Exception:
-        return False
