@@ -119,8 +119,7 @@ def convert_bytes_to_image(bytes : bytes):
         `image`: The bytes casted as BytesIO to be opened as image.
     """
     try:
-        image = Image.open(BytesIO(bytes))
-        return image
+        return Image.open(BytesIO(bytes))
     except Exception:
         return None
     
