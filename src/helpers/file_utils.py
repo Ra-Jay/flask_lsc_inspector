@@ -74,36 +74,6 @@ def get_image_size(file_data : bytes):
         return f"{size_in_kb:.2f} kB"
     except Exception:
         return None
-    
-def convert_BytesIO_to_image(bytes_io : BytesIO):
-    """
-    Convert BytesIO to image.
-    
-    Parameters:
-        `bytes_io`: The BytesIO that the user want to convert.
-        
-    Returns:
-        `image`: The BytesIO opened as image.
-    """
-    try:
-        return Image.open(bytes_io)
-    except Exception:
-        return None
-    
-def convert_bytes_to_BytesIO(bytes : bytes):
-    """
-    Convert bytes to BytesIO.
-    
-    Parameters:
-        `bytes`: The bytes that the user want to convert.
-        
-    Returns:
-        `BytesIO`: The bytes casted as BytesIO.
-    """
-    try:
-        return BytesIO(bytes)
-    except Exception:
-        return None
 
 def convert_image_to_ndarray(image : Image):
     """

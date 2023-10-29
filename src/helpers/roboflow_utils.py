@@ -1,8 +1,7 @@
 from roboflow import Roboflow
 import requests
 from flask import current_app, jsonify
-
-from src.helpers.file_utils import convert_BytesIO_to_image, convert_bytes_to_BytesIO, convert_image_to_ndarray, draw_boxes_on_image
+from src.helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
 
 def perform_inference(image_url : str, api_key=None, project_name=None, version_number=None):
   """
@@ -30,9 +29,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
   image_response = requests.get(image_url)
   
   if image_response.status_code == 200:
-    image_bytes = convert_bytes_to_BytesIO(image_response.content)
-    retrieved_image = convert_BytesIO_to_image(image_bytes)
-    
+    retrieved_image = convert_bytes_to_image(image_response.content)
     try:
       results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
     except Exception as e:
