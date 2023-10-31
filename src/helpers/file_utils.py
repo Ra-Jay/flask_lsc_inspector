@@ -125,12 +125,28 @@ def convert_bytes_to_image(bytes : bytes):
     
 def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
   """
-  Takes an image and a list of predictions, and draws the bounding boxes and class labels in the image.
+  Takes an image and its list of predictions that uses x, y, width, and height to draw the bounding boxes 
+  then adds the class labels and confidence scores.
   
   Parameters:
     `image`: PIL.Image object to be drawn on.
     
     `predictions`: List of predictions.
+    
+  Example:
+    >>> {
+    >>>   "predictions": [
+    >>>     {
+    >>>       "x": 172,
+    >>>       "y": 113.5,
+    >>>       "width": 72,
+    >>>       "height": 87,
+    >>>       "confidence": 0.697,
+    >>>       "class": "Good",
+    >>>       "class_id": 0
+    >>>     }
+    >>>   ]
+    >>> }
     
   Returns:
     `image`: The PIL.Image that was updated with the bounding boxes and class labels.
@@ -146,7 +162,11 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
     text = f"{bounding_box['class']}: {bounding_box['confidence']:.2f}"
     
     fontsize = int(0.05 * image.size[1])
-    font = ImageFont.truetype("arial.ttf", fontsize)
+    try:
+        font = ImageFont.truetype("arial.ttf", fontsize)
+    except OSError:
+        # Use default font if arial.ttf is not found in Mac/Linux/Windows.
+        font = ImageFont.load_default()
     text_width, _ = draw.textsize(text, font=font)
     if text_width > bounding_box['width']:
         text_position = (x1, y0)
