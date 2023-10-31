@@ -100,11 +100,10 @@ def get_result_details(results : dict[str, list]):
     `400`: If the model has returned an empty predictions. Caused by incorrect image and/or image size.
   """
   try:
-    classification = [prediction['class'] for prediction in results['predictions']][0]
     accuracy = round([prediction['confidence'] for prediction in results['predictions']][0], 2) * 100
     error_rate = 100 - accuracy
     return {
-      'classification': classification,
+      'classification': [prediction['class'] for prediction in results['predictions']][0],
       'accuracy': f"{accuracy:.0f}%",
       'error_rate': f"{error_rate:.0f}%"
     }
