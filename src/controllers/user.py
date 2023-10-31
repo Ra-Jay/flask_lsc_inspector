@@ -29,7 +29,6 @@ def register():
     username=request.json['username']
     email=request.json['email']
     password=request.json['password']
-
     validate_user_details(username, password, email)
     try:
         user=Users(id = uuid4(), username=username, password=get_hash(password), email=email)
@@ -61,7 +60,6 @@ def login():
     """
     email = request.json['email']
     password = request.json['password']
-
     user = Users.query.filter_by(email=email).first()
     if user:
         user_weights = Weights.query.filter_by(user_id=user.id).all()
@@ -97,12 +95,7 @@ def refresh_users_token():
     Returns:
         `JSON Response (200)`: The response from the server with the `access` token as a string.
     """
-    identity = get_jwt_identity()
-    access = create_access_token(identity=identity)
-
-    return jsonify({
-        'access': access
-    }), HTTP_200_OK
+    return jsonify({'access': create_access_token(identity=get_jwt_identity())}), HTTP_200_OK
 
 @users.put('/<uuid(strict=False):id>/edit')
 @jwt_required()
@@ -182,11 +175,7 @@ def edit_profile_image(id : uuid4):
         return jsonify({'message': 'User is not found'}), HTTP_404_NOT_FOUND
 
     image = get_file(request.files['profile_image'])
-    supabase_response = upload_file_to_bucket(
-            "PROFILE_IMAGES",
-            f"users/{str_id}/{generate_hex()}{image['name']}", 
-            image['data']
-        )
+    supabase_response = upload_file_to_bucket("PROFILE_IMAGES", f"users/{str_id}/{generate_hex()}{image['name']}", image['data'])
     if type(supabase_response) is str:
         try:
             user.profile_image = supabase_response
@@ -201,8 +190,7 @@ def edit_profile_image(id : uuid4):
         except SQLAlchemyError as e:
             db.session.rollback()
             return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
-    else:
-        return supabase_response
+    else: return supabase_response
     
 @users.put('/<uuid(strict=False):id>/password/edit')
 @jwt_required()
@@ -252,5 +240,4 @@ def edit_password(id):
         except SQLAlchemyError as e:
             db.session.rollback()
             return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
-    else :
-          return jsonify({'message': 'Password doesn\'t match.'}), HTTP_400_BAD_REQUEST
+    else: return jsonify({'message': 'Password doesn\'t match.'}), HTTP_400_BAD_REQUEST
