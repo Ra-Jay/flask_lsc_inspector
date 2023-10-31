@@ -37,7 +37,6 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     except Exception as e:
       return jsonify({'error': str(e)}), HTTP_500_INTERNAL_SERVER_ERROR
     
-    resulting_image = draw_boxes_on_image(retrieved_image, results["predictions"])
     result_details = get_result_details(results)
     if result_details == HTTP_400_BAD_REQUEST:
       return jsonify(
@@ -45,7 +44,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
         ), HTTP_400_BAD_REQUEST
     
     return {
-      'image': resulting_image,
+      'image': draw_boxes_on_image(retrieved_image, results["predictions"]),
       'classification': result_details['classification'],
       'accuracy': result_details['accuracy'],
       'error_rate': result_details['error_rate']
