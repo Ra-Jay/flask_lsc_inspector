@@ -32,12 +32,7 @@ def upload():
   file = get_file(request.files['file'])
   file_name : str = file['name']
   file_data : bytes = file['data']
-
-  supabase_response = upload_file_to_bucket(
-      "FILES", 
-      f"uploads/users/{generate_hex()}{file_name}", 
-      file_data
-    )
+  supabase_response = upload_file_to_bucket("FILES", f"uploads/users/{generate_hex()}{file_name}", file_data)
   if type(supabase_response) is str:
     return jsonify({
         'url': supabase_response,
@@ -45,8 +40,7 @@ def upload():
         'dimensions': get_image_dimensions(file_data),
         'size': get_image_size(file_data)
     }), HTTP_201_CREATED
-  else:
-    return supabase_response
+  else: return supabase_response
     
 @files.post('/analyze')
 @jwt_required()
@@ -84,19 +78,13 @@ def analyze():
   api_key = request.json['api_key']
   version = request.json['version']
   weight_id = request.json['weight_id']
-  
   result = perform_inference(image_url=uploaded_file_url, project_name=project_name, api_key=api_key, version_number=version)
   if type(result) is not dict:
     return result
   
   result_data = convert_image_to_bytes(result['image'])
   new_file_name = generate_hex() + uploaded_file_name
-
-  supabase_response = upload_file_to_bucket(
-      "FILES", 
-      f"main/{current_user}/{new_file_name}",
-      result_data
-    )
+  supabase_response = upload_file_to_bucket("FILES", f"main/{current_user}/{new_file_name}",result_data)
   if type(supabase_response) is str:
     try:
       file = Files(
@@ -126,8 +114,7 @@ def analyze():
     except SQLAlchemyError as e:
       db.session.rollback()
       return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
-  else:
-    return supabase_response
+  else: return supabase_response
  
 @files.post('/demo')
 def demo():
@@ -155,9 +142,7 @@ def demo():
     return result
   
   supabase_response = upload_file_to_bucket(
-      "FILES", 
-      f"demos/{generate_hex()}{get_file_base_name(uploaded_file_url)}", 
-      convert_image_to_bytes(result['image'])
+      "FILES", f"demos/{generate_hex()}{get_file_base_name(uploaded_file_url)}", convert_image_to_bytes(result['image'])
     )
   if type(supabase_response) is str:
     return jsonify({
@@ -166,8 +151,7 @@ def demo():
       'accuracy': result['accuracy'],
       'error_rate': result['error_rate'],
       }), HTTP_201_CREATED
-  else:
-    return supabase_response
+  else: return supabase_response
     
 @files.get('/')
 @jwt_required()
@@ -256,7 +240,6 @@ def delete_by_id(id):
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
   delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], f"main/{str_id}/{file.name}")
-  
   try:
     db.session.delete(file)
     db.session.commit()
