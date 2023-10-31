@@ -144,19 +144,17 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
     
     draw.rectangle([x0, y0, x1, y1], outline="green" if bounding_box['class'] == "Good" else "red", width=2)
     text = f"{bounding_box['class']}: {bounding_box['confidence']:.2f}"
-    fontsize = 1
-    img_fraction = 0.20
     
-    # TODO: Remove specific path of font after configuring
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-    # TODO: Fix font size
-    while font.getsize(text)[0] < img_fraction*image.size[0]:
-      fontsize += 1
-      font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-
-    fontsize -= 1
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-    # TODO: Fix the text position
-    draw.text((x0, y0), text, fill="green" if bounding_box['class'] == "Good" else "red", spacing=5, font=font)
+    fontsize = int(0.05 * image.size[1])
+    font = ImageFont.truetype("arial.ttf", fontsize)
+    text_width, _ = draw.textsize(text, font=font)
+    if text_width > bounding_box['width']:
+        text_position = (x1, y0)
+    else:
+        text_position = (x0, y0)
+    
+    text_width, text_height = draw.textsize(text, font=font)
+    draw.rectangle([text_position[0], text_position[1], text_position[0] + text_width, text_position[1] + text_height], fill="black")
+    draw.text(text_position, text, fill="green" if bounding_box['class'] == "Good" else "red", font=font)
     
   return image
