@@ -1,5 +1,5 @@
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
-from flask import Blueprint, current_app, request, jsonify
+from flask import Blueprint, request, jsonify
 from src.helpers.file_utils import get_file, generate_hex
 from src.helpers.supabase_utils import upload_file_to_bucket
 from src.helpers.user_utils import check_hash, get_hash, validate_user_details   
