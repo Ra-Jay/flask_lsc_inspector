@@ -1,77 +1,43 @@
 from flask import current_app, jsonify
-from supabase import create_client, Client
+from supabase import create_client
 
 def get_bucket_type(bucket : str):
     """
     Gets the bucket type from the bucket name.
     
     Parameters:
-        `bucket`: The name of the bucket.
+        `bucket`: The bucket name that the user want to get the type.
         
     Returns:
         `str`: The bucket type.
     """
-    if bucket == 'lsc_files':
-        return current_app.config['SUPABASE_BUCKET_FILES']
-    elif bucket == 'lsc_profile_images':
-        return current_app.config['SUPABASE_BUCKET_PROFILE_IMAGES']
-    else:
-        return None
+    return current_app.config.get(f"SUPABASE_BUCKET_{bucket}")
 
-def upload_file_to_bucket(bucket : str, name : str, data : str):
+def upload_file_to_bucket(bucket : str, name : str, data : bytes):
     """
     Uploads a file to a specified bucket.
     
     Parameters:
-        `bucket`: The name of the bucket where you want to upload the file.
+        `bucket`: The bucket name that the user want to upload the file.
         
-        `name`: The name of the file that you want to upload to the bucket.
+        `name`: The name of the file.
         
-        `data`: The data of the file that you want to upload to the bucket.
+        `data`: The data of the file as bytes.
         
     Returns:
-        `str`: The public url of the file if the file is uploaded successfully.
+        `str`: The public url of the file.
         
-        `JSON Response`: If an error occurs from the supabase server.
+        `JSON Supabase Response`: If there is an error while uploading the file to Supabase.
     """
     try:
-        supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
-        global response
-        
-        if name.endswith('.png'):
-            response = supabase.storage.from_(bucket).upload(name, data, {"content-type": "image/png"})
-        elif name.endswith('.jpg') or name.endswith('.jpeg'):
-            response = supabase.storage.from_(bucket).upload(name, data, {"content-type": "image/jpeg"})
-            
+        supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+        content_type = {"content-type": f"image/{name.split('.')[-1]}"}
+        supabase.storage.from_(get_bucket_type(bucket)).upload(name, data, content_type)
         return get_file_url_by_name(bucket, name)
     except Exception as e:
         return jsonify({
             'error': e.args[0]['error'] + '.',
             'message': 'Failed to upload the file to the bucket. File URL retrieval failed.'
-        }), e.args[0]['statusCode']
-    
-
-def download_file_from_bucket(bucket : str, name : str):
-    """
-    Downloads a file from a specified bucket.
-    
-    Parameters:
-        `bucket`: The name of the bucket where you want to download the file.
-        
-        `name`: The name of the file that you want to download from the bucket.
-        
-    Returns:
-        `bytes`: The file data to be saved.
-        
-        `JSON Response`: If an error occurs from the supabase server.
-    """
-    try:
-        supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
-        return supabase.storage.from_(get_bucket_type(bucket)).download(name)
-    except Exception as e:
-        return jsonify({
-            'error': e.args[0]['error'] + '.',
-            'message': 'File download failed.'
         }), e.args[0]['statusCode']
 
 def get_file_url_by_name(bucket : str, name : str):
@@ -79,43 +45,22 @@ def get_file_url_by_name(bucket : str, name : str):
     Gets the public url of a file from a specified bucket.
     
     Parameters:
-        `bucket`: The name of the bucket where you want to get the file url.
+        `bucket`: The bucket name that the user want to get the file.
         
-        `name`: The name of the file that you want to get the url from the bucket.
+        `name`: The name of the file.
         
     Returns:
         `str`: The public url of the file.
         
-        `JSON Response`: If an error occurs from the supabase server.
+        `JSON Supabase Response`: If there is an error while getting the file url from Supabase.
     """
     try:
-        supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+        supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
         return supabase.storage.from_(get_bucket_type(bucket)).get_public_url(name)
     except Exception as e:
         return jsonify({
             'error': e.args[0]['error'] + '.',
             'message': 'File URL retrieval failed.'
-        }), e.args[0]['statusCode']
-    
-def get_all_files_from_bucket(bucket : str):
-    """
-    Gets all the files from a specified bucket.
-    
-    Parameters:
-        `bucket`: The name of the bucket where you want to get all the files.
-        
-    Returns:
-        `list[dict[str, str]]`: A list of dictionaries containing the file name and url.
-        
-        `JSON Response`: If an error occurs from the supabase server.
-    """
-    try:
-        supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
-        return supabase.storage.from_(get_bucket_type(bucket)).list()
-    except Exception as e:
-        return jsonify({
-            'error': e.args[0]['error'] + '.',
-            'message': 'Files retrieval failed.'
         }), e.args[0]['statusCode']
 
 def delete_file_by_name(bucket : str, name : str):
@@ -123,17 +68,17 @@ def delete_file_by_name(bucket : str, name : str):
     Deletes a file from a specified bucket.
     
     Parameters:
-        `bucket`: The name of the bucket where you want to delete the file.
+        `bucket`: The bucket name that the user want to delete the file.
         
-        `name`: The name of the file that you want to delete from the bucket.
+        `name`: The name of the file.
         
     Returns:
-        `dict[str, str]`: A dictionary containing the file name and url.
-        
-        `JSON Response`: If an error occurs from the supabase server.
+        `JSON Response (200)`: The response from the server with the file details.
+    
+        `JSON Supabase Response`: If there is an error while deleting the file from Supabase.
     """
     try:
-        supabase: Client = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+        supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
         return supabase.storage.from_(get_bucket_type(bucket)).remove(name)
     except Exception as e:
         return jsonify({

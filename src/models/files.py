@@ -1,7 +1,6 @@
 from ..extensions import db
 from datetime import datetime
 
-
 class Files(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     user_id=db.Column(db.String(50), db.ForeignKey('users.id'))
@@ -15,9 +14,4 @@ class Files(db.Model):
     url=db.Column(db.Text, nullable=True)
     created_at=db.Column(db.DateTime, default=datetime.now())
     updated_at=db.Column(db.DateTime, onupdate=datetime.now())
-
-    # user = db.relationship('Users', backref='files', foreign_keys=[user_id])
-
-    # def __repr__(self) -> str:
-    #     return f'File>> {self.name}'
         

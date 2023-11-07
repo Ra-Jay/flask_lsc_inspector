@@ -1,104 +1,89 @@
-import os
-from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
-from flask import Blueprint, current_app, request, jsonify
-from werkzeug.utils import secure_filename
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from flask import Blueprint, request, jsonify
 from src.helpers.roboflow_utils import deploy_model
-# from werkzeug.security import check_api_key_hash, generate_api_key_hash
 from src.models.weights import Weights
 from ..extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
-import uuid
+from uuid import uuid4
+from sqlalchemy.exc import SQLAlchemyError
 
 weights = Blueprint("weights", __name__, url_prefix="/api/v1/weights")
 
-WEIGHTS_FOLDER = os.path.join('src', 'static', 'pre-trained_weights')
-
-@weights.post('/')
+@weights.post('/deploy')
 @jwt_required()
-def post():
+def deploy():
     """
-    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+    Deploy a model to Roboflow.
+    
+    Body:
+        `JSON Body`: The JSON body that contains the weights attributes: `project_name`, `workspace`, 
+        `api_key`, `version`, `model_type`, `model_path`, and `type`.
 
     Returns:
-        `JSON Response`: Weights object with a status code of `201 (HTTP_201_CREATED)`.
+        `JSON Response (201)`: The response from the server with the weights details: `id`, `user_id`, `project_name`, 
+        `api_key`, `version`, `model_type`, `type`, `created_at`, and `updated_at`.
         
-        `HTTP_400_BAD_REQUEST`: If the weights file is not found.
+        `JSON Response (409)`: If the API Key of the current user already exists.
         
-        `HTTP_409_CONFLICT`: If the api_key already exists.
+        `JSON Response (500)`: If there is an SQLAlchemy error.
         
-        `HTTP_500_INTERNAL_SERVER_ERROR`: If there is an internal server error.
+        `JSON Roboflow Response`: If there is an error when deploying to the Roboflow server.
     """    
     current_user = get_jwt_identity()
+    api_key = request.json['api_key']
 
-    if request.method == 'POST':
-        project_name = request.json.get('project_name', '')
-        workspace = request.json.get('workspace', '')
-        api_key = request.json.get('api_key', '')
-        version = request.json.get('version', '')
-        model_type = request.json.get('model_type', '')
-        model_path = request.json.get('model_path', '') #FileSave in the frontend
-        type = request.json.get('type', '')
-
-        if Weights.query.filter_by(api_key=api_key, user_id=current_user).first():
-            return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
-        
-        if type == 'custom':
-            weight = Weights(id=uuid.uuid4(), user_id=current_user, workspace=workspace, project_name=project_name, api_key=api_key, version=version, model_type=model_type, type=type)
-            
-            roboflow_response = deploy_model(api_key, workspace, project_name, version, model_type, model_path)
-            if roboflow_response == 201:
-                db.session.add(weight)
-                db.session.commit()
-                
-                return jsonify({
-                    'id': weight.id,
-                    'user_id':current_user, 
-                    'project_name': weight.project_name,
-                    'api_key': weight.api_key,
-                    'version': weight.version,
-                    'model_type': weight.model_type, # "yolov5", "yolov7-seg", and "yolov8" only
-                    'type': weight.type,
-                    'created_at': weight.created_at,
-                    'udpated_at': weight.updated_at
-                }), HTTP_201_CREATED
-            else:
-                return roboflow_response
-        else:
-            weight = Weights(id=uuid.uuid4(), user_id=current_user, workspace=None, project_name=current_app.config['ROBOFLOW_PROJECT'], api_key=current_app.config['ROBOFLOW_API_KEY'], version=1, model_type="yolov8", type=type)
-            db.session.add(weight)
-            db.session.commit()
-            
-            return jsonify({
-                'id': weight.id,
-                'user_id':current_user, 
-                'project_name': weight.project_name,
-                'api_key': weight.api_key,
-                'version': weight.version,
-                'model_type': weight.model_type,
-                'type': weight.type, # 'pre-trained
-                'created_at': weight.created_at,
-                'udpated_at': weight.updated_at
-            }), HTTP_201_CREATED
-        
+    if Weights.query.filter_by(api_key=api_key, user_id=current_user).first():
+        return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
+    
+    type = request.json['type']
+    model_path = request.json['model_path']
+    weight = Weights(
+        id=uuid4(), 
+        user_id=current_user, 
+        workspace=request.json['workspace'], 
+        project_name=request.json['project_name'], 
+        api_key=api_key, 
+        version=request.json['version'], 
+        model_type=request.json['model_type'], 
+        type=type
+    )
+    if type == 'custom':
+        roboflow_response = deploy_model(api_key, weight.workspace, weight.project_name, weight.version, weight.model_type, model_path)
+        if roboflow_response != HTTP_201_CREATED: return roboflow_response
+    try:
+        db.session.add(weight)
+        db.session.commit()
+        return jsonify({
+            'id': weight.id,
+            'user_id':current_user, 
+            'project_name': weight.project_name,
+            'api_key': weight.api_key,
+            'version': weight.version,
+            'model_type': weight.model_type,
+            'type': weight.type,
+            'created_at': weight.created_at,
+            'udpated_at': weight.updated_at
+        }), HTTP_201_CREATED
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR
 
 @weights.get('/')
 @jwt_required()
 def get_all():
     """
-    Retrieves all the weights objects based on the current user's identity.
-    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+    Retrieves the list of weights of the current user.
 
     Returns:
-        `JSON Response`: List of weights objects with a status code of `200 (HTTP_200_OK)`.
+        `JSON Response (201)`: The response from the server with the list of user's `weights` and user details: 
+        `id`, `refresh_token`, `access_token`, `username`, `email`, and `profile_image`.
         
-        `HTTP_404_NOT_FOUND`: If the weights is not found.
+        `JSON Response (404)`: If the weights is not found.
     """    
     current_user = get_jwt_identity()
-
     weights = Weights.query.filter_by(user_id=current_user).all()
-
     if not weights:
-        return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
+        return jsonify({'message': 'Weights not found.'}), HTTP_404_NOT_FOUND
     
     data = []
     for weight in weights:
@@ -111,30 +96,26 @@ def get_all():
             'created_at': weight.created_at,
             'udpated_at': weight.updated_at
         })
-
     return jsonify({'data': data}), HTTP_200_OK
 
 @weights.get('/<uuid(strict=False):id>')
 @jwt_required()
 def get_by_id(id):
     """
-    Retrieves the weights object based on its ID and the current user's identity.
-    The weights object includes the following attributes: `id`, `name`, `url`, `created_at`, `updated_at`.
+    Retrieves the weights by its id of the current user.
     
     Parameters:
         `id`: The unique identifier of the weights that the user wants to retrieve.
 
     Returns:
-        `JSON Response`: Weight object with a status code of `200 (HTTP_200_OK)`.
+        `JSON Response (200)`: The response from the server with the weights details: `id`, `user_id`, `project_name`,
         
-        `HTTP_404_NOT_FOUND`: If the weights is not found.
+        `JSON Response (404)`: If the weights is not found.
     """    
     current_user = get_jwt_identity()
-
     weight = Weights.query.filter_by(user_id=current_user, id=str(id)).first()
-
     if not weights:
-        return jsonify({'message': 'Item not found'}), HTTP_404_NOT_FOUND
+        return jsonify({'message': 'No weights found.'}), HTTP_404_NOT_FOUND
 
     return jsonify({
             'id': weight.id,
@@ -146,29 +127,32 @@ def get_by_id(id):
             'udpated_at': weight.updated_at
         }), HTTP_200_OK
 
-
-@weights.delete('/<uuid(strict=False):id>')
+@weights.delete('/<uuid(strict=False):id>/delete')
 @jwt_required()
 def delete_by_id(id):
     """
-    Deletes the weights object based on its ID and the current user's identity.
+    Deletes the weights by its id of the current user.
 
     Parameters:
         `id`: The unique identifier of the weights that the user wants to delete.
 
     Returns:
-        `JSON Response`: Message with a status code of `200 (HTTP_200_OK)`.
+        `JSON Response (200)`: The response from the server with the successful `message`.
         
-        `HTTP_404_NOT_FOUND`: If the weights is not found.
+        `JSON Response (404)`: If the weights is not found.
+        
+        `JSON Response (500)`: If there is an SQLAlchemy error.
     """    
-    current_user = get_jwt_identity()
-
-    weight = Weights.query.filter_by(user_id=current_user, id=str(id)).first()
-
+    weight = Weights.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
     if not weight:
-        return jsonify({'message': 'Weights not found'}), HTTP_404_NOT_FOUND
-
-    db.session.delete(weight)
-    db.session.commit()
-
-    return jsonify({'message': 'Weights successfully deleted'}), HTTP_200_OK
+        return jsonify({'message': 'No weights found.'}), HTTP_404_NOT_FOUND
+    
+    # TODO: Delete the Dataset Version from Roboflow
+    
+    try:
+        db.session.delete(weight)
+        db.session.commit()
+        return jsonify({'message': 'Weights successfully deleted'}), HTTP_200_OK
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'error': str(e.orig)}), HTTP_500_INTERNAL_SERVER_ERROR

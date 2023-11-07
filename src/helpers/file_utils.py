@@ -1,6 +1,6 @@
 from os import path, urandom
 from io import BytesIO
-import numpy as np
+from numpy import asarray
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from PIL import Image, ImageDraw, ImageFont
@@ -38,7 +38,7 @@ def get_file(file_storage : FileStorage):
     """
     return {
         'name': secure_filename(file_storage.filename),
-        'data': convert_file_to_bytes(file_storage)
+        'data': file_storage.read()
     }
     
 def get_image_dimensions(file_data : bytes):
@@ -46,17 +46,16 @@ def get_image_dimensions(file_data : bytes):
     Get the dimensions of an image.
 
     Parameters:
-        `file_data`: The file data that the user want to get the dimensions.
+        `file_data`: The file data as bytes that the user want to get the dimensions.
          
     Returns:
-        `str`: The dimensions of the image.
+        `str`: The dimensions of the image that concatenates the `width` and `height`.
     """
     try:
         image = convert_bytes_to_image(file_data)
         width, height = image.size
         return f"{width}x{height}"
-    except Exception as e:
-        print(f"Error while getting image dimensions: {e}")
+    except Exception:
         return None
 
 def get_image_size(file_data : bytes):
@@ -64,68 +63,18 @@ def get_image_size(file_data : bytes):
     Get the size of an image.
     
     Parameters:
-       `file_data`: The file data that the user want to get the size.
+       `file_data`: The file data as bytes that the user want to get the size.
        
     Returns:
-        `str`: The size of the image.
+        `str`: The size of the image in kilobytes.
     """
     try:
         file_size = len(file_data)
         size_in_kb = file_size / 1024
         return f"{size_in_kb:.2f} kB"
-    except Exception as e:
-        print(f"Error while getting image size: {e}")
-        return None
-    
-def convert_BytesIO_to_image(bytes_io : BytesIO):
-    """
-    Convert BytesIO to image.
-    
-    Parameters:
-        `bytes_io`: The BytesIO that the user want to convert.
-        
-    Returns:
-        `image`: The BytesIO opened as image.
-    """
-    try:
-        return Image.open(bytes_io)
-    except Exception as e:
-        print(f"Error while opening image: {e}")
-        return None
-    
-def convert_bytes_to_BytesIO(bytes : bytes):
-    """
-    Convert bytes to BytesIO.
-    
-    Parameters:
-        `bytes`: The bytes that the user want to convert.
-        
-    Returns:
-        `BytesIO`: The bytes casted as BytesIO.
-    """
-    try:
-        return BytesIO(bytes)
-    except Exception as e:
-        print(f"Error while getting image by bytes: {e}")
+    except Exception:
         return None
 
-def convert_file_to_bytes(file : FileStorage):
-    """
-    Convert a file to bytes.
-    
-    Parameters:
-        `file`: The file that the user want to convert.
-        
-    Returns:
-        `bytes`: The file read as bytes.
-    """
-    try:
-        file_bytes : bytes = file.read()
-        return file_bytes
-    except Exception as e:
-        print(f"Error while converting file to bytes: {e}")
-        return None  
-    
 def convert_image_to_ndarray(image : Image):
     """
     Convert an image to ndarray.
@@ -137,9 +86,8 @@ def convert_image_to_ndarray(image : Image):
         `ndarray`: The image as ndarray.
     """
     try:
-        return np.asarray(image)
-    except Exception as e:
-        print(f"Error while converting image to ndarray: {e}")
+        return asarray(image)
+    except Exception:
         return None
 
 def convert_image_to_bytes(image : Image):
@@ -157,8 +105,7 @@ def convert_image_to_bytes(image : Image):
             image.save(buf, format='PNG')
             image_bytes = buf.getvalue()
             return image_bytes
-    except Exception as e:
-        print(f"Error while converting image to bytes: {e}")
+    except Exception:
         return None
 
 def convert_bytes_to_image(bytes : bytes):
@@ -172,26 +119,39 @@ def convert_bytes_to_image(bytes : bytes):
         `image`: The bytes casted as BytesIO to be opened as image.
     """
     try:
-        image = Image.open(BytesIO(bytes))
-        return image
-    except Exception as e:
-        print(f"Error while converting bytes to image: {e}")
+        return Image.open(BytesIO(bytes))
+    except Exception:
         return None
     
 def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
   """
-  Takes an image and a list of predictions, and returns the image with bounding boxes and class labels drawn on it.
+  Takes an image and its list of predictions that uses x, y, width, and height to draw the bounding boxes 
+  then adds the class labels and confidence scores.
   
   Parameters:
-    `image`: Image object.
+    `image`: PIL.Image object to be drawn on.
     
     `predictions`: List of predictions.
     
+  Example:
+    >>> {
+    >>>   "predictions": [
+    >>>     {
+    >>>       "x": 172,
+    >>>       "y": 113.5,
+    >>>       "width": 72,
+    >>>       "height": 87,
+    >>>       "confidence": 0.697,
+    >>>       "class": "Good",
+    >>>       "class_id": 0
+    >>>     }
+    >>>   ]
+    >>> }
+    
   Returns:
-    `image`: Image object with bounding boxes and class labels drawn on it.
+    `image`: The PIL.Image that was updated with the bounding boxes and class labels.
   """
   draw = ImageDraw.Draw(image)
-  
   for bounding_box in predictions:
     x0 = bounding_box['x'] - bounding_box['width'] / 2
     x1 = bounding_box['x'] + bounding_box['width'] / 2
@@ -200,36 +160,21 @@ def draw_boxes_on_image(image : Image, predictions : dict[str, list]):
     
     draw.rectangle([x0, y0, x1, y1], outline="green" if bounding_box['class'] == "Good" else "red", width=2)
     text = f"{bounding_box['class']}: {bounding_box['confidence']:.2f}"
-    fontsize = 1
-    img_fraction = 0.20
     
-    # Remove specific path of font after configuring
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-    while font.getsize(text)[0] < img_fraction*image.size[0]:
-      fontsize += 1
-      font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-
-    fontsize -= 1
-    font = ImageFont.truetype("/Users/incrementtechnologiesinc./Library/Fonts/arial.ttf" or "arial.ttf", fontsize)
-    draw.text((x0, y0), text, fill="green" if bounding_box['class'] == "Good" else "red", spacing=5, font=font)
+    fontsize = int(0.05 * image.size[1])
+    try:
+        font = ImageFont.truetype("arial.ttf", fontsize)
+    except OSError:
+        # Use default font if arial.ttf is not found in Mac/Linux/Windows.
+        font = ImageFont.load_default()
+    text_width, _ = draw.textsize(text, font=font)
+    if text_width > bounding_box['width']:
+        text_position = (x1, y0)
+    else:
+        text_position = (x0, y0)
+    
+    text_width, text_height = draw.textsize(text, font=font)
+    draw.rectangle([text_position[0], text_position[1], text_position[0] + text_width, text_position[1] + text_height], fill="black")
+    draw.text(text_position, text, fill="green" if bounding_box['class'] == "Good" else "red", font=font)
     
   return image
-
-def save_image(bytes : bytes, file_path : str):
-    """
-    Saves an image to the local filesystem.
-    
-    Parameters:
-        `bytes`: The bytes of the image that you want to save.
-        
-        `file_path`: The path where you want to save the image.
-        
-    Returns:
-        `bool`: True if the image is saved successfully, False otherwise.
-    """
-    try:
-        convert_bytes_to_image(bytes).save(file_path)
-        return True
-    except Exception as e:
-        print(f"Error while saving image to the local filesystem: {e}")
-        return False
