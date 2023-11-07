@@ -1,5 +1,5 @@
 from flask import jsonify
-import validators
+from validators import email as validate_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from src.constants.status_codes import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
@@ -54,7 +54,7 @@ def validate_user_details(username : str, password : str, email : str):
   if not username.isalnum() or ' ' in username:
     return jsonify({'error': 'Username should be alphanumeric and can contain no spaces'}), HTTP_400_BAD_REQUEST
 
-  if not validators.email(email):
+  if not validate_email(email):
     return jsonify({'error': 'Email is not valid'}), HTTP_400_BAD_REQUEST
 
   if Users.query.filter_by(email=email).first() is not None:
