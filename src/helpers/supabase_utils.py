@@ -11,7 +11,14 @@ def get_bucket_type(bucket : str):
     Returns:
         `str`: The bucket type.
     """
-    return current_app.config.get(f"SUPABASE_BUCKET_{bucket}")
+    supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+    current_bucket = current_app.config.get(f"SUPABASE_BUCKET_{bucket}")
+    buckets = supabase.storage.list_buckets()
+    for bucket in buckets:
+        if bucket.name == current_bucket:
+            return current_bucket
+        else:
+            return None
 
 def upload_file_to_bucket(bucket : str, name : str, data : bytes):
     """
