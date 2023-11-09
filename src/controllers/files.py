@@ -239,7 +239,9 @@ def delete_by_id(id):
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
-  delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
+  supabase_response = delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
+  if supabase_response != HTTP_200_OK:
+    return supabase_response
   try:
     db.session.delete(file)
     db.session.commit()
