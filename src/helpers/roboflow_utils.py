@@ -1,5 +1,5 @@
 from roboflow import Roboflow
-from requests import get as getRequest
+from requests import HTTPError, get as getRequest
 from flask import current_app, jsonify
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 from src.helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
@@ -34,6 +34,11 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     retrieved_image = convert_bytes_to_image(image_response.content)
     try:
       results = custom_model.predict(convert_image_to_ndarray(retrieved_image), confidence=20, overlap=30).json()
+    except HTTPError as he:
+      return jsonify({
+        'error': f"Client Error: {he.response.reason}", 
+        'message': 'Model may still be undergoing deployment. Try again later.'
+        }), he.response.status_code
     except Exception as e:
       return jsonify({'error': str(e)}), HTTP_500_INTERNAL_SERVER_ERROR
     
