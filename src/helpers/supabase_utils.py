@@ -71,7 +71,7 @@ def get_file_url_by_name(bucket : str, name : str):
             'error': e.args[0]['error'] + '.',
             'message': 'File URL retrieval failed.'
         }), e.args[0]['statusCode']
-
+        
 def get_files_in_bucket(bucket : str, name : str):
     """
     Gets the list of files in a specified bucket.
@@ -109,7 +109,15 @@ def delete_file_by_name(bucket : str, name : str):
     """
     try:
         supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
-        return supabase.storage.from_(get_bucket_type(bucket)).remove(name)
+        files = get_files_in_bucket(bucket, name)
+        if type(files) is tuple:
+            return files
+            
+        for file in files:
+            if file['name'] == path.basename(name):
+                supabase.storage.from_(get_bucket_type(bucket)).remove(name)
+            else:
+                return jsonify({'message': 'File not found in bucket.'}), HTTP_404_NOT_FOUND
     except Exception as e:
         return jsonify({
             'error': e.args[0]['error'] + '.',
