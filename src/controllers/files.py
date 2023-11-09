@@ -234,12 +234,12 @@ def delete_by_id(id):
     
     `JSON Response (500)`: If there is an SQLAlchemy error.
   """
-  str_id = str(id)
-  file = Files.query.filter_by(user_id=get_jwt_identity(), id=str_id).first()
+  current_user = get_jwt_identity()
+  file = Files.query.filter_by(user_id=current_user, id=str(id)).first()
   if not file:
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
-  delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], f"main/{str_id}/{file.name}")
+  delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
   try:
     db.session.delete(file)
     db.session.commit()
@@ -270,7 +270,7 @@ def delete_all():
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
   for file in files:
-    delete_file_by_name(current_app.config['SUPABASE_BUCKET_FILES'], f"main/{current_user}/{file.name}")
+    delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
   
   try:
     db.session.query(Files).filter_by(user_id=current_user).delete()
