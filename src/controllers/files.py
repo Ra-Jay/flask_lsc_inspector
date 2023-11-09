@@ -272,7 +272,9 @@ def delete_all():
     return jsonify({'message': 'File not found'}), HTTP_404_NOT_FOUND
   
   for file in files:
-    delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
+    supabase_response = delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
+    if supabase_response != HTTP_200_OK:
+      return supabase_response
   
   try:
     db.session.query(Files).filter_by(user_id=current_user).delete()
