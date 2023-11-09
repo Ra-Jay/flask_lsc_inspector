@@ -1,5 +1,7 @@
 from flask import current_app, jsonify
 from supabase import create_client
+from os import path
+from src.constants.status_codes import HTTP_404_NOT_FOUND
 
 def get_bucket_type(bucket : str):
     """
@@ -68,6 +70,27 @@ def get_file_url_by_name(bucket : str, name : str):
         return jsonify({
             'error': e.args[0]['error'] + '.',
             'message': 'File URL retrieval failed.'
+        }), e.args[0]['statusCode']
+
+def get_files_in_bucket(bucket : str, name : str):
+    """
+    Gets the list of files in a specified bucket.
+    
+    Parameters:
+        `bucket`: The bucket name that the user want to get the files.
+        
+    Returns:
+        `JSON Response (200)`: The response from the server with the list of files in the bucket.
+        
+        `JSON Supabase Response`: If there is an error while getting the list of files from Supabase.
+    """
+    try:
+        supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
+        return supabase.storage.from_(get_bucket_type(bucket)).list(path.dirname(name))
+    except Exception as e:
+        return jsonify({
+            'error': e.args[0]['error'] + '.',
+            'message': 'File list retrieval failed.'
         }), e.args[0]['statusCode']
 
 def delete_file_by_name(bucket : str, name : str):
