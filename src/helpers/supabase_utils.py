@@ -109,18 +109,8 @@ def delete_file_by_name(bucket : str, name : str):
     """
     try:
         supabase = create_client(current_app.config['SUPABASE_URL'], current_app.config['SUPABASE_KEY'])
-        files = get_files_in_bucket(bucket, name)
-        if type(files) is tuple:
-            return files
-            
-        for file in files:
-            if file['name'] == path.basename(name):
-                supabase.storage.from_(get_bucket_type(bucket)).remove(name)
-                return HTTP_200_OK
-            else:
-                raise FileNotFoundError
-    except FileNotFoundError:
-        return jsonify({'message': 'File not found.'}), HTTP_404_NOT_FOUND
+        supabase.storage.from_(get_bucket_type(bucket)).remove(name)
+        return HTTP_200_OK
     except Exception as e:
         return jsonify({
             'error': e.args[0]['error'] + '.',
