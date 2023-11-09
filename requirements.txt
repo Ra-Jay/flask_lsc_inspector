@@ -16,3 +16,4 @@ flask_swagger_ui==4.11.1
 roboflow==1.1.7
 requests==2.31.0
 pytest==7.4.3
+ultralytics==8.0.134
