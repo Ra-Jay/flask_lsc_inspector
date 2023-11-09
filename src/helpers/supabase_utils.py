@@ -1,7 +1,7 @@
 from flask import current_app, jsonify
 from supabase import create_client
 from os import path
-from src.constants.status_codes import HTTP_404_NOT_FOUND
+from src.constants.status_codes import HTTP_404_NOT_FOUND, HTTP_200_OK
 
 def get_bucket_type(bucket : str):
     """
@@ -116,8 +116,11 @@ def delete_file_by_name(bucket : str, name : str):
         for file in files:
             if file['name'] == path.basename(name):
                 supabase.storage.from_(get_bucket_type(bucket)).remove(name)
+                return HTTP_200_OK
             else:
-                return jsonify({'message': 'File not found in bucket.'}), HTTP_404_NOT_FOUND
+                raise FileNotFoundError
+    except FileNotFoundError:
+        return jsonify({'message': 'File not found.'}), HTTP_404_NOT_FOUND
     except Exception as e:
         return jsonify({
             'error': e.args[0]['error'] + '.',
