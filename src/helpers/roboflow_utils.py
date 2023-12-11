@@ -1,8 +1,8 @@
 from roboflow import Roboflow
 from requests import HTTPError, get as getRequest
 from flask import current_app, jsonify
-from constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
-from helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
+from src.helpers.file_utils import convert_bytes_to_image, convert_image_to_ndarray, draw_boxes_on_image
 
 def perform_inference(image_url : str, api_key=None, project_name=None, version_number=None):
   """

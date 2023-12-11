@@ -1,7 +1,7 @@
-from constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
+from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
-from helpers.roboflow_utils import deploy_model
-from models.weights import Weights
+from src.helpers.roboflow_utils import deploy_model
+from src.models.weights import Weights
 from extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from uuid import uuid4

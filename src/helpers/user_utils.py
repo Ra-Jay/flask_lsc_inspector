@@ -2,8 +2,8 @@ from flask import jsonify
 from validators import email as validate_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from constants.status_codes import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
-from models.users import Users
+from src.constants.status_codes import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
+from src.models.users import Users
 
 def get_hash(password : str):
   """

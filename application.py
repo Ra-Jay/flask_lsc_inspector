@@ -1,8 +1,8 @@
 from flask import Flask
 from extensions import api, db
-from controllers.user import users
-from controllers.weights import weights
-from controllers.files import files
+from src.controllers.user import users
+from src.controllers.weights import weights
+from src.controllers.files import files
 from flask_jwt_extended import JWTManager
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS

@@ -1,6 +1,6 @@
 from flask import current_app, jsonify
 from supabase import create_client
-from constants.status_codes import HTTP_200_OK
+from src.constants.status_codes import HTTP_200_OK
 
 def get_bucket_type(bucket : str):
     """
