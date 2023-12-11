@@ -1,5 +1,5 @@
 from flask_restx import fields
-from ..extensions import api 
+from extensions import api 
 
 users_model = api.model("Users", {
     "id": fields.Integer,
