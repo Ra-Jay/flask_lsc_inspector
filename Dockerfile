@@ -17,9 +17,6 @@ RUN pip install gunicorn --no-cache-dir
 # Copy the application code to the container
 COPY . .
 
-# Expose the port on which the Flask app will run
-EXPOSE 5000/tcp
-
 # Set the ENTRYPOINT to gunicorn
 # and set the CMD to app:app to tell gunicorn what to run
-ENTRYPOINT ["gunicorn", "-b", ":5000", "application:create_app()"]
+ENTRYPOINT ["gunicorn", "application:create_app()"]
