@@ -2,7 +2,7 @@ from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_C
 from flask import Blueprint, request, jsonify
 from src.helpers.roboflow_utils import deploy_model
 from src.models.weights import Weights
-from ..extensions import db
+from extensions import db
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError

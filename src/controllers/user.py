@@ -5,7 +5,7 @@ from src.helpers.supabase_utils import upload_file_to_bucket
 from src.helpers.user_utils import check_hash, get_hash, validate_user_details   
 from src.models.users import Users
 from src.models.weights import Weights
-from ..extensions import db
+from extensions import db
 from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from uuid import uuid4
 from datetime import datetime

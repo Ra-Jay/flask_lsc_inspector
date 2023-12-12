@@ -1,5 +1,5 @@
 from flask import Flask
-from src.extensions import api, db
+from extensions import api, db
 from src.controllers.user import users
 from src.controllers.weights import weights
 from src.controllers.files import files
@@ -55,3 +55,11 @@ def create_app(test_config=None):
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
     CORS(app)
     return app
+
+def serve():
+    app = create_app()
+    app.run(host='0.0.0.0', port=5000)
+    
+    
+if __name__ == '__main__':
+    serve()
