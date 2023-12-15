@@ -18,4 +18,7 @@ RUN pip install gunicorn --no-cache-dir
 COPY . .
 
 # Expose the port the app runs on
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "application:create_app"]
+EXPOSE 5000
+
+# Set the CMD to start the app
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "application:create_app()"]
