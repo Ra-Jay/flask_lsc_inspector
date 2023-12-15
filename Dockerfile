@@ -18,4 +18,4 @@ RUN pip install gunicorn --no-cache-dir
 COPY . .
 
 # Expose the port the app runs on
-ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:5000", "application:create_app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "application:create_app"]
