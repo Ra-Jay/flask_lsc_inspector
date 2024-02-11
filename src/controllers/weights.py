@@ -144,7 +144,9 @@ def delete_by_id(id):
     if not weight:
         return jsonify({'message': 'No weights found.'}), HTTP_404_NOT_FOUND
     
-    # TODO: Delete the Dataset Version from Roboflow
+    files = Files.query.filter_by(id=str(id)).all()
+    for file in files:
+        db.session.delete(file)
     
     try:
         db.session.delete(weight)
