@@ -141,7 +141,9 @@ def delete_by_id(id):
         
         `JSON Response (500)`: If there is an SQLAlchemy error.
     """    
-    weight = Weights.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
+    current_user = get_jwt_identity()
+    weight_id = str(id)
+    weight = Weights.query.filter_by(user_id=current_user, id=weight_id).first()
     if not weight:
         return jsonify({'message': 'No weights found.'}), HTTP_404_NOT_FOUND
     
