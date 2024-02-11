@@ -31,9 +31,6 @@ def deploy():
     """    
     current_user = get_jwt_identity()
     api_key = request.json['api_key']
-
-    if Weights.query.filter_by(api_key=api_key, user_id=current_user).first():
-        return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
     
     type = request.json['type']
     model_path = request.json['model_path']
