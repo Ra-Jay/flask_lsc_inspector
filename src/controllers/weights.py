@@ -154,6 +154,9 @@ def delete_by_id(id):
             return supabase_response
     
     try:
+        if files:
+            db.session.query(Files).filter_by(user_id=current_user, weight_id=weight_id).delete()
+            
         db.session.delete(weight)
         db.session.commit()
         return jsonify({'message': 'Weights successfully deleted'}), HTTP_200_OK
