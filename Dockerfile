@@ -1,7 +1,8 @@
 # Use the official Python base image
 FROM python:3.10-slim
 
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
+    ffmpeg libsm6 libxext6
 
 # Set the working directory in the container
 WORKDIR /flask_lsc_inspector_app
