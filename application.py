@@ -8,9 +8,9 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS
 from os import environ, urandom
 
-def create_app(test_config=None):
-    app = Flask(__name__,
-    instance_relative_config=True)
+def create_app(*args, **kwargs):
+    test_config = kwargs.get('test_config')
+    app = Flask(__name__, instance_relative_config=True)
     if test_config is None:
         app.config.from_mapping(
             SECRET_KEY=urandom(24).hex(),
@@ -22,7 +22,7 @@ def create_app(test_config=None):
             SUPABASE_BUCKET_FILES=environ.get('SUPABASE_BUCKET_FILES'),
             SUPABASE_BUCKET_WEIGHTS=environ.get('SUPABASE_BUCKET_WEIGHTS'),
             SUPABASE_BUCKET_PROFILE_IMAGES=environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
-            ROBOFLOW_API_KEY=environ.get('ROBOFLOW_API_KEY'),
+            ROBOFLOW_PRIVATE_API_KEY=environ.get('ROBOFLOW_PRIVATE_API_KEY'),
             ROBOFLOW_PROJECT=environ.get('ROBOFLOW_PROJECT'),
         )
     else: 

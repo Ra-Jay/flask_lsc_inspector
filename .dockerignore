@@ -1,0 +1,5 @@
+env
+.git
+.flaskenv
+Dockerfile
+**/__pycache__/

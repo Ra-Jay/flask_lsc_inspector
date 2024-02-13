@@ -25,7 +25,7 @@ def perform_inference(image_url : str, api_key=None, project_name=None, version_
     
     `JSON Roboflow Response (500)`: If there is an error while performing inference in Roboflow.
   """
-  rf = Roboflow(api_key or current_app.config['ROBOFLOW_API_KEY'])
+  rf = Roboflow(api_key or current_app.config['ROBOFLOW_PRIVATE_API_KEY'])
   project = rf.workspace().project(project_name or  current_app.config['ROBOFLOW_PROJECT'])
   custom_model = project.version(version_number or 1).model
 

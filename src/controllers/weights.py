@@ -1,3 +1,5 @@
+from src.helpers.supabase_utils import delete_file_by_name
+from src.models.files import Files
 from src.constants.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_409_CONFLICT, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flask import Blueprint, request, jsonify
 from src.helpers.roboflow_utils import deploy_model
@@ -31,9 +33,6 @@ def deploy():
     """    
     current_user = get_jwt_identity()
     api_key = request.json['api_key']
-
-    if Weights.query.filter_by(api_key=api_key, user_id=current_user).first():
-        return jsonify({'error': 'API Key already exists.'}), HTTP_409_CONFLICT
     
     type = request.json['type']
     model_path = request.json['model_path']
@@ -143,13 +142,22 @@ def delete_by_id(id):
         
         `JSON Response (500)`: If there is an SQLAlchemy error.
     """    
-    weight = Weights.query.filter_by(user_id=get_jwt_identity(), id=str(id)).first()
+    current_user = get_jwt_identity()
+    weight_id = str(id)
+    weight = Weights.query.filter_by(user_id=current_user, id=weight_id).first()
     if not weight:
         return jsonify({'message': 'No weights found.'}), HTTP_404_NOT_FOUND
     
-    # TODO: Delete the Dataset Version from Roboflow
+    files = Files.query.filter_by(user_id=current_user, weight_id=weight_id)
+    for file in files:
+        supabase_response = delete_file_by_name("FILES", f"main/{current_user}/{file.name}")
+        if supabase_response != HTTP_200_OK:
+            return supabase_response
     
     try:
+        if files:
+            db.session.query(Files).filter_by(user_id=current_user, weight_id=weight_id).delete()
+            
         db.session.delete(weight)
         db.session.commit()
         return jsonify({'message': 'Weights successfully deleted'}), HTTP_200_OK
