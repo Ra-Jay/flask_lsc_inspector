@@ -22,7 +22,7 @@ def create_app(*args, **kwargs):
             SUPABASE_BUCKET_FILES=environ.get('SUPABASE_BUCKET_FILES'),
             SUPABASE_BUCKET_WEIGHTS=environ.get('SUPABASE_BUCKET_WEIGHTS'),
             SUPABASE_BUCKET_PROFILE_IMAGES=environ.get('SUPABASE_BUCKET_PROFILE_IMAGES'),
-            ROBOFLOW_API_KEY=environ.get('ROBOFLOW_API_KEY'),
+            ROBOFLOW_PRIVATE_API_KEY=environ.get('ROBOFLOW_PRIVATE_API_KEY'),
             ROBOFLOW_PROJECT=environ.get('ROBOFLOW_PROJECT'),
         )
     else: 
