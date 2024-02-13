@@ -84,4 +84,4 @@ python application.py
 A Dockerfile is included for building a Docker image of the application. To build and push the Docker image, use the provided `build_and_push.sh` script.
 
 ## Deployment
-> The deployment of this application is not possible for some service providers in the internet due to its heavy Python packages, however, this was resolved by running this application in a virtual machine using Amazon Web Services (AWS) Elastic Computing Cloud (EC2) service to which hosts the API for the frontend to consume.
+> The deployment of this application is not possible for some service providers in the internet due to its heavy Python packages, however, this was resolved by running this application in a virtual machine using Amazon Web Services (AWS) Elastic Computing Cloud (EC2) service to which hosts the API for the [NextJS Frontend Project](https://github.com/Ra-Jay/next_lsc_inspector) to consume.
